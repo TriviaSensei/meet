@@ -5,4 +5,3 @@ node_modules/
 *.env
 todo.txt
 sandbox.js
-public/js/index_backup.js

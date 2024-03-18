@@ -5,8 +5,8 @@ const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
 
-const viewRouter = require('.mvc/routes/viewRoutes');
-const viewsController = require('./mvc/controllers/viewsController');
+const viewRouter = require('./mvc/routes/viewRoutes');
+const eventRouter = require('./mvc/routes/eventRoutes');
 const errorHandler = require('./mvc/controllers/errorController');
 
 const app = express();
@@ -25,12 +25,30 @@ app.use(morgan('dev'));
 app.use(express.static(path.join(__dirname, 'public')));
 
 const viewLimiter = rateLimit({
-	max: 50,
+	max: 3600,
 	windowMs: 60 * 60 * 1000,
 	message: 'Too many requests from this IP - please try again later.',
 });
+const getLimiter = rateLimit({
+	max: 3600,
+	windowMs: 60 * 60 * 1000,
+	message: 'Too many requests from this IP - please try again later.',
+});
+const editLimiter = rateLimit({
+	max: 3600,
+	windowMs: 60 * 60 * 1000,
+	message: 'Too many requests from this IP - please try again later.',
+});
+const eventLimiter = rateLimit({
+	max: 50,
+	windowMs: 60 * 60 * 1000,
+	message: 'You are trying to create too many events - please try again later.',
+});
 
 app.use('/', viewLimiter);
+app.use('/api/v1/events/createEvent', eventLimiter);
+app.use('/api/v1/events/getEvent', getLimiter);
+app.use('/api/v1/events/editEvent', editLimiter);
 
 //body parser, read data from body to req.body
 app.use(express.json());
@@ -40,12 +58,13 @@ app.use(compression());
 
 // 2) Routes
 app.use('/', viewRouter);
+app.use('/api/v1/events', eventRouter);
 // app.all('*', (req, res, next) => {
 //   //   //any argument passed to a next() function is assumed to be an error; skips all other middleware and goes to the error handler.
 //   next(new AppError(`Could not find ${req.originalUrl} on this server.`, 404));
 // });
 
-app.all('*', viewsController.redirectToIndex);
+// app.all('*', viewsController.redirectToIndex);
 
 app.use(errorHandler);
 
