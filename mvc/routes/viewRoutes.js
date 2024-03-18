@@ -1,6 +1,6 @@
 const express = require('express');
+const eventController = require('../controllers/eventController');
 const viewController = require('../controllers/viewController');
-const authController = require('../controllers/authController');
 
 const router = express.Router();
 
@@ -8,6 +8,6 @@ const router = express.Router();
 // router.use(viewController.handleAlert);
 
 router.get('/', viewController.getHome);
-router.get('/:id', authController.isLoggedIn, viewController.getEvent);
+router.get('/:id', eventController.isLoggedIn, viewController.getEvent);
 
 module.exports = router;
