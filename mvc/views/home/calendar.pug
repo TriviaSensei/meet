@@ -1,0 +1,23 @@
+.input-container.align-items-center.calendar
+    .input-label Event Dates
+    .d-flex.justify-content-between.w-75.mb-2
+        .d-flex
+            .m-auto.d-flex.me-1
+                button#prev-year.btn.btn-primary.btn-sm(type="button") <<
+            .m-auto.d-flex
+                button#prev-month.btn.btn-primary.btn-sm(type="button") <
+        .d-flex 
+            .m-auto#event-month
+        .d-flex
+            .m-auto.d-flex
+                button#next-month.btn.btn-primary.btn-sm(type="button") >
+            .m-auto.d-flex.ms-1
+                button#next-year.btn.btn-primary.btn-sm(type="button") >>
+    .d-flex
+        each dow in ['Su','M','Tu','W','Th','F','Sa']
+            .calendar-header
+                .m-auto= `${dow}`
+    - for (i=0;i<5;i++)
+        .row
+            - for (j=0;j<7;j++)
+                .calendar-day

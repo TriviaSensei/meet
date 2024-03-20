@@ -1,0 +1,21 @@
+extends _base
+
+block content 
+    .app-container
+        section.header-section.d-flex.justify-content-between
+            .logo-container.d-flex.f-1
+                include svg/logo
+                include svg/logo_text
+            .menu-container.d-flex.justify-content-end 
+                include svg/settings
+                include svg/help
+        section.body-section.d-flex.flex-column.align-items-center 
+            form#create-event-form.w-100
+                include home/eventname
+                include home/eventtype
+                include home/calendar
+                include home/time
+                include home/timezone
+                .input-container
+                    button.btn.btn-primary.m-auto(type="submit") Create Event
+                

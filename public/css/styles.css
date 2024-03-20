@@ -1,0 +1,157 @@
+:root {
+	--text-color: #111111;
+	--bg-color: #eeeeee;
+	--selected-date: navy;
+	--cal-day-size: 8vw;
+	--today: blue;
+	--gray-out: #aaaaaa;
+}
+
+.darkmode {
+	--text-color: #eeeeee;
+	--bg-color: #111111;
+	--selected-date: #aab000;
+	--today: magenta;
+	--gray-out: #555555;
+}
+
+html,
+body {
+	font-family: 'Manjari', sans-serif;
+	font-weight: 400;
+	font-style: normal;
+	height: 100%;
+	background-color: var(--bg-color);
+	color: var(--text-color);
+	touch-action: manipulation;
+	overflow: hidden;
+}
+
+select {
+	height: 1.5rem;
+	padding: 0 10px;
+	-webkit-appearance: none;
+	border-radius: 0;
+}
+select > option {
+	height: 2rem;
+}
+
+.b {
+	border: 1px solid black;
+}
+
+.no-select {
+	-webkit-touch-callout: none; /* iOS Safari */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Old versions of Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	user-select: none;
+}
+
+.bold {
+	font-weight: 700;
+}
+
+.container-all {
+	height: 100%;
+	max-height: 100%;
+}
+
+.app-container {
+	width: min(100%, 500px);
+	height: 100%;
+	max-height: 100%;
+	margin: auto;
+}
+
+.header-section {
+	height: 2em;
+	display: flex;
+	justify-content: space-between;
+	border-bottom: 1px solid var(--text-color);
+}
+
+.logo-container {
+	height: 100%;
+}
+
+.header-logo {
+	margin: auto 10px;
+	height: 80%;
+}
+
+.header-logo-text {
+	margin: auto 10px;
+	max-height: 50%;
+	height: 50%;
+}
+
+.menu-container .header-logo {
+	width: 2em;
+}
+
+.f-1 {
+	flex: 1;
+}
+
+.input-container {
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	padding: 5px;
+}
+
+.input-container > .input-label {
+	font-size: 1rem;
+}
+
+.input-row {
+	display: flex;
+	width: 100%;
+}
+
+.input-row > .input-container {
+	flex: 1;
+}
+
+input[type='radio'] + label {
+	border: 1px solid var(--text-color);
+	padding: 5px;
+	text-align: center;
+}
+
+input[type='radio'] {
+	display: none;
+}
+
+input[type='radio']:checked + label {
+	background-color: var(--selected-date);
+	color: var(--bg-color);
+}
+
+input[type='radio']:not(:checked) + label {
+	color: var(--gray-out);
+}
+
+.calendar-header {
+	text-align: center;
+	display: flex;
+	font-weight: bold;
+	width: var(--cal-day-size);
+	font-size: 0.8rem;
+	margin: 0 1px 1px 1px;
+}
+
+.calendar.button {
+	-webkit-appearance: none;
+	border-radius: 0;
+}
+
+.calendar-day {
+	width: var(--cal-day-size);
+	height: var(--cal-day-size);
+	border: 1px solid var(--text-color);
+	margin: 1px;
+}

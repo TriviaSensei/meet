@@ -32,8 +32,8 @@ const eventSchema = new mongoose.Schema({
 	eventType: {
 		type: String,
 		required: [true, 'You must specify the scheduling method.'],
-		enum: ['continuous', 'discrete'],
-		default: 'continuous',
+		enum: ['date-time', 'date', 'weekday-time', 'weekday'],
+		default: 'date-time',
 	},
 	dates: {
 		type: [Date],

@@ -1,11 +1,12 @@
 const AppError = require('../../utils/appError');
 const catchAsync = require('../../utils/catchAsync');
 const Event = require('../models/eventModel');
-const { createToken } = require('../../utils/token');
+const moment = require('moment-timezone');
 
 exports.getHome = catchAsync(async (req, res, next) => {
 	res.status(200).render('home', {
 		title: 'Home',
+		timeZones: moment.tz.names(),
 	});
 });
 
