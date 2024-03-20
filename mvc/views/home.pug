@@ -1,5 +1,7 @@
 extends _base
 
+block modals
+
 block content 
     .app-container
         section.header-section.d-flex.justify-content-between
@@ -7,7 +9,6 @@ block content
                 include svg/logo
                 include svg/logo_text
             .menu-container.d-flex.justify-content-end 
-                include svg/settings
                 include svg/help
         section.body-section.d-flex.flex-column.align-items-center 
             form#create-event-form.w-100

@@ -1,18 +1,10 @@
 :root {
 	--text-color: #111111;
 	--bg-color: #eeeeee;
-	--selected-date: navy;
+	--selected-date: #00ff77;
 	--cal-day-size: 8vw;
 	--today: blue;
 	--gray-out: #aaaaaa;
-}
-
-.darkmode {
-	--text-color: #eeeeee;
-	--bg-color: #111111;
-	--selected-date: #aab000;
-	--today: magenta;
-	--gray-out: #555555;
 }
 
 html,
@@ -116,9 +108,13 @@ select > option {
 	flex: 1;
 }
 
+.w-15 {
+	width: 15%;
+}
+
 input[type='radio'] + label {
 	border: 1px solid var(--text-color);
-	padding: 5px;
+	padding: 2px;
 	text-align: center;
 }
 
@@ -128,7 +124,6 @@ input[type='radio'] {
 
 input[type='radio']:checked + label {
 	background-color: var(--selected-date);
-	color: var(--bg-color);
 }
 
 input[type='radio']:not(:checked) + label {
