@@ -1,15 +1,16 @@
 :root {
 	--text-color: #111111;
-	--bg-color: #eeeeee;
+	--bg-color: #dddddd;
 	--selected-date: #00ff77;
-	--cal-day-size: 8vw;
+	--cal-day-size: 8%;
 	--today: blue;
 	--gray-out: #aaaaaa;
+	--light-gray-out: #bbbbbb;
 }
 
 html,
 body {
-	font-family: 'Manjari', sans-serif;
+	font-family: 'Noto Sans', sans-serif;
 	font-weight: 400;
 	font-style: normal;
 	height: 100%;
@@ -17,6 +18,10 @@ body {
 	color: var(--text-color);
 	touch-action: manipulation;
 	overflow: hidden;
+}
+
+* {
+	touch-action: manipulation;
 }
 
 select {
@@ -29,8 +34,23 @@ select > option {
 	height: 2rem;
 }
 
-.b {
+.message {
+	position: absolute;
+	font-weight: bold;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	pointer-events: none;
+	width: fit-content;
+	border-radius: 5px;
 	border: 1px solid black;
+	background-color: white;
+	padding: 10px;
+	opacity: 1;
+	transition: opacity 0.25s ease-in-out;
+	-moz-transition: opacity 0.25s ease-in-out;
+	-webkit-transition: opacity 0.25s ease-in-out;
+	z-index: 2000;
 }
 
 .no-select {
@@ -122,7 +142,8 @@ input[type='radio'] {
 	display: none;
 }
 
-input[type='radio']:checked + label {
+input[type='radio']:checked + label,
+.calendar-day.selected {
 	background-color: var(--selected-date);
 }
 
@@ -133,6 +154,7 @@ input[type='radio']:not(:checked) + label {
 .calendar-header {
 	text-align: center;
 	display: flex;
+	flex: 1;
 	font-weight: bold;
 	width: var(--cal-day-size);
 	font-size: 0.8rem;
@@ -144,9 +166,22 @@ input[type='radio']:not(:checked) + label {
 	border-radius: 0;
 }
 
+.calendar-row {
+	width: 60%;
+}
+
 .calendar-day {
-	width: var(--cal-day-size);
-	height: var(--cal-day-size);
 	border: 1px solid var(--text-color);
 	margin: 1px;
+	display: flex;
+}
+
+.calendar-day.today {
+	font-weight: 900;
+	color: var(--today);
+	border: 2px solid var(--today);
+}
+
+.gray-out {
+	color: var(--light-gray-out);
 }

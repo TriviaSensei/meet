@@ -2,7 +2,7 @@
     .d-flex.mb-1
         .w-15.d-flex 
             .m-auto Dates:
-        input#event-type-date(type="radio" name="event-type" value="date" checked)
+        input#event-type-date(type="radio" name="event-type" value="specific" checked)
         label.f-1(for="event-type-date") Specific Dates 
         input#event-type-weekday(type="radio" name="event-type" value="weekday")
         label.f-1(for="event-type-weekday") Days of Week
@@ -10,6 +10,6 @@
         .w-15.d-flex 
             .m-auto Times:
         input#event-type-dt(type="radio" name="event-time" value="time" checked)
-        label.f-1(for="event-type-dt") Date + Time
-        input#event-type-d(type="radio" name="event-time" value="")
-        label.f-1(for="event-type-d") Date only
+        label.f-1(for="event-type-dt") Dates + Times
+        input#event-type-d(type="radio" name="event-time" value="none")
+        label.f-1(for="event-type-d") Dates only

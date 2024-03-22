@@ -1,23 +1,23 @@
 .input-container.align-items-center.calendar
-    .input-label Event Dates
-    .d-flex.justify-content-between.w-75.mb-2
+    .input-label.mb-2 Click and drag to select dates:
+    #month-control.d-flex.justify-content-between.w-75.mb-2
         .d-flex
             .m-auto.d-flex.me-1
                 button#prev-year.btn.btn-primary.btn-sm(type="button") <<
             .m-auto.d-flex
                 button#prev-month.btn.btn-primary.btn-sm(type="button") <
         .d-flex 
-            .m-auto#event-month
+            .m-auto#event-month.bold
         .d-flex
             .m-auto.d-flex
                 button#next-month.btn.btn-primary.btn-sm(type="button") >
             .m-auto.d-flex.ms-1
                 button#next-year.btn.btn-primary.btn-sm(type="button") >>
-    .d-flex
+    .d-flex.calendar-row
         each dow in ['Su','M','Tu','W','Th','F','Sa']
             .calendar-header
                 .m-auto= `${dow}`
-    - for (i=0;i<5;i++)
-        .row
+    - for (i=0;i<6;i++)
+        .d-flex.calendar-row(data-row=`${i}`)
             - for (j=0;j<7;j++)
-                .calendar-day
+                .ratio.ratio-1x1.calendar-day.d-flex
