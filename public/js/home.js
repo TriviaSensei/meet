@@ -4,6 +4,13 @@ import { handleRequest } from './utils/requestHandler.js';
 import { createElement } from './utils/createElementFromSelector.js';
 import { getElementArray } from './utils/getElementArray.js';
 
+const tooltipTriggerList = document.querySelectorAll(
+	'[data-bs-toggle="tooltip"]'
+);
+const tooltipList = [...tooltipTriggerList].map(
+	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
+);
+
 const months = [
 	'January',
 	'February',
@@ -36,7 +43,16 @@ const monthForward = document.querySelector('#next-month');
 const eventTypeDate = getElementArray(document, 'input[name="event-type"]');
 const eventTypeTime = getElementArray(document, 'input[name="event-time"]');
 const timeRange = document.querySelector('#time-range');
+
+let isMobile;
+
 let sh;
+
+let touchState = new StateHandler({
+	touchActive: false,
+	cell1: null,
+	cell2: null,
+});
 
 //month label (March 2024)
 const setMonthLabel = (e) => {
@@ -68,6 +84,9 @@ const renderCalendar = (state) => {
 			: 28;
 
 	const fillCalendarDay = (box, date, today, gray) => {
+		if (state.selectedDates.includes(date)) box.classList.add('selected');
+		else box.classList.remove('selected');
+
 		const cOuter = createElement('.d-flex');
 		const c = createElement(`.m-auto${gray ? '.gray-out' : ''}`);
 		const n = date.split('-')[2];
@@ -104,9 +123,9 @@ const renderCalendar = (state) => {
 	for (var i = wd1 - 1; i >= 0; i--) {
 		fillCalendarDay(
 			calendarDays[i],
-			`${lastMonth === 11 ? state.year - 1 : state.year}-${lastMonth}-${
-				lastMonthDays + i - wd1 + 1
-			}`,
+			`${lastMonth === 11 ? state.year - 1 : state.year}-${
+				lastMonth + 1 < 10 ? `0${lastMonth + 1}` : lastMonth + 1
+			}-${lastMonthDays + i - wd1 + 1}`,
 			false,
 			true
 		);
@@ -171,6 +190,14 @@ const showHideTime = (e) => {
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+	document.body.addEventListener(
+		'touchstart',
+		() => {
+			isMobile = true;
+		},
+		{ once: true }
+	);
+
 	//populate the calendar
 	const date = new Date();
 	const month = months[date.getMonth()];
@@ -183,7 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		day,
 		month,
 		year,
-		dateList: [],
+		selectedDates: [],
+		selectedWeekdays: [],
 		times: [],
 		timeZone: tzSelect.value,
 	};
@@ -198,7 +226,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 	sh.addWatcher(null, (state) => {
 		const rows = getElementArray(document, '.calendar-row[data-row]');
-		console.log(state.dates);
 		if (state.dates === 'specific') {
 			rows.forEach((r) => {
 				r.classList.remove('d-none');
@@ -207,8 +234,10 @@ document.addEventListener('DOMContentLoaded', () => {
 		} else {
 			rows.forEach((r) => {
 				if (r.getAttribute('data-row') === '0') {
-					getElementArray(r, '.calendar-day').forEach((d) => {
+					getElementArray(r, '.calendar-day').forEach((d, i) => {
 						d.innerHTML = '';
+						if (state.selectedWeekdays.includes(i)) d.classList.add('selected');
+						else d.classList.remove('selected');
 					});
 				} else r.classList.add('d-none');
 			});
@@ -249,7 +278,130 @@ document.addEventListener('DOMContentLoaded', () => {
 	ops.some((op) => {
 		if (op.value.toUpperCase() === userTZ.toUpperCase()) {
 			op.selected = true;
+			sh.setState((prev) => {
+				return {
+					...prev,
+					timeZone: op.value,
+				};
+			});
 			return true;
 		}
+	});
+
+	//touch actions for calendar days
+	touchState.addWatcher(null, (state) => {
+		//check if any date has been selected - if not, there's nothing left to do.
+		const date1 = state.cell1?.getAttribute('data-date');
+		if (!date1) return;
+		const s = sh.getState();
+		//if the starting cell was already selected, we are toggling off, otherwise we are toggling on.
+		console.log(s);
+		console.log(state.cell1);
+		const toggleOn =
+			s.dates === 'specific'
+				? !s.selectedDates.includes(date1)
+				: !s.selectedWeekdays.includes(
+						Number(state.cell1?.getAttribute('data-cell-no'))
+				  );
+
+		const ind1 = Number(state.cell1.getAttribute('data-cell-no'));
+		const ind2 = Number(state.cell2.getAttribute('data-cell-no'));
+
+		const startIndex = Math.min(ind1, ind2);
+		const endIndex = Math.max(ind1, ind2);
+
+		//if there is a touch active...
+		if (state.touchActive) {
+			calendarDays.forEach((c, i) => {
+				if (toggleOn) {
+					//if we're toggling on, highlight the cells that we are toggling
+					if (i < startIndex || i > endIndex) c.classList.remove('dragged-on');
+					else c.classList.add('dragged-on');
+				} else {
+					if (i < startIndex || i > endIndex) c.classList.remove('dragged-off');
+					else c.classList.add('dragged-off');
+				}
+			});
+		}
+		// if no touch active, we just let go. Set the main state appropriately
+		else {
+			//if we were toggling on...
+			if (toggleOn) {
+				if (s.dates === 'specific') {
+					//...push any new dates into the array
+					for (var i = startIndex; i <= endIndex; i++) {
+						const d = calendarDays[i].getAttribute('data-date');
+						calendarDays[i].classList.remove('dragged-on');
+						if (!s.selectedDates.includes(d)) s.selectedDates.push(d);
+					}
+				} else {
+					for (var i = startIndex; i <= endIndex; i++) {
+						calendarDays[i].classList.remove('dragged-on');
+						if (!s.selectedWeekdays.includes(i)) s.selectedWeekdays.push(i);
+					}
+				}
+				sh.setState(s);
+			} else {
+				//otherwise, take the dragged dates and remove them all from the selected dates array
+				const deselectedDates = calendarDays
+					.slice(startIndex, endIndex + 1)
+					.map((c) => {
+						c.classList.remove('dragged-off');
+						return s.dates === 'specific'
+							? c.getAttribute('data-date')
+							: Number(c.getAttribute('data-cell-no'));
+					});
+				if (s.dates === 'specific') {
+					s.selectedDates = s.selectedDates.filter((d) => {
+						return !deselectedDates.includes(d);
+					});
+				} else {
+					s.selectedWeekdays = s.selectedWeekdays.filter((d) => {
+						return !deselectedDates.includes(d);
+					});
+				}
+				sh.setState(s);
+			}
+			touchState.setState({
+				touchActive: false,
+				cell1: null,
+				cell2: null,
+			});
+		}
+	});
+	calendarDays.forEach((c) => {
+		c.addEventListener('touchstart', (e) => {
+			touchState.setState({
+				touchActive: true,
+				cell1: e.target.closest('.calendar-day'),
+				cell2: e.target.closest('.calendar-day'),
+			});
+		});
+		c.addEventListener('touchmove', (e) => {
+			const [x, y] = [e.changedTouches[0].pageX, e.changedTouches[0].pageY];
+
+			calendarDays.some((c) => {
+				const rect = c.getBoundingClientRect();
+				if (
+					x >= rect.left &&
+					x <= rect.right &&
+					y >= rect.top &&
+					y <= rect.bottom
+				) {
+					touchState.setState((prev) => {
+						return {
+							...prev,
+							cell2: c,
+						};
+					});
+					return true;
+				}
+			});
+		});
+		c.addEventListener('touchend', (e) => {
+			touchState.setState((prev) => {
+				return { ...prev, touchActive: false };
+			});
+		});
 	});
 });

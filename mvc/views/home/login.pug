@@ -1,0 +1,15 @@
+#login.d-flex.w-100.justify-content-around.mb-2
+    .input-container
+        .input-label.d-flex
+            div Your name
+            div(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Your name and password are for this event only.") 
+                include ../svg/help
+        .d-flex
+            input#user-name(type="text" name="name" placeholder="Name")
+    .input-container
+        .input-label.d-flex 
+            div Password
+            div(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Your name and password are for this event only.") 
+                include ../svg/help
+        .d-flex
+            input#password(type="password" name="password" placeholder='Password')

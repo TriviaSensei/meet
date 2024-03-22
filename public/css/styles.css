@@ -2,7 +2,8 @@
 	--text-color: #111111;
 	--bg-color: #dddddd;
 	--selected-date: #00ff77;
-	--cal-day-size: 8%;
+	--dragged-date: yellow;
+	--cal-width: 45%;
 	--today: blue;
 	--gray-out: #aaaaaa;
 	--light-gray-out: #bbbbbb;
@@ -17,9 +18,13 @@ body {
 	background-color: var(--bg-color);
 	color: var(--text-color);
 	touch-action: manipulation;
-	overflow: hidden;
+	overflow-x: hidden;
+	overflow-y: hidden;
 }
 
+/* div {
+	border: 1px solid blue;
+} */
 * {
 	touch-action: manipulation;
 }
@@ -112,7 +117,7 @@ select > option {
 	width: 100%;
 	display: flex;
 	flex-direction: column;
-	padding: 5px;
+	padding: 3px;
 }
 
 .input-container > .input-label {
@@ -126,6 +131,10 @@ select > option {
 
 .input-row > .input-container {
 	flex: 1;
+}
+
+.input-label svg {
+	max-height: 1rem;
 }
 
 .w-15 {
@@ -167,19 +176,32 @@ input[type='radio']:not(:checked) + label {
 }
 
 .calendar-row {
-	width: 60%;
+	width: var(--cal-width);
 }
 
 .calendar-day {
 	border: 1px solid var(--text-color);
 	margin: 1px;
 	display: flex;
+	font-size: 0.8rem;
 }
 
 .calendar-day.today {
 	font-weight: 900;
 	color: var(--today);
 	border: 2px solid var(--today);
+}
+
+.calendar-day.selected {
+	background-color: var(--selected-date);
+}
+
+.calendar-day.dragged-on {
+	background-color: var(--dragged-date);
+}
+
+.calendar-day.dragged-off {
+	background-color: var(--bg-color);
 }
 
 .gray-out {

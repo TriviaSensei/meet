@@ -20,4 +20,4 @@
     - for (i=0;i<6;i++)
         .d-flex.calendar-row(data-row=`${i}`)
             - for (j=0;j<7;j++)
-                .ratio.ratio-1x1.calendar-day.d-flex
+                .ratio.ratio-1x1.calendar-day.d-flex(data-cell-no=`${i*7+j}`)
