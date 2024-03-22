@@ -403,5 +403,43 @@ document.addEventListener('DOMContentLoaded', () => {
 				return { ...prev, touchActive: false };
 			});
 		});
+
+		c.addEventListener('mousedown', (e) => {
+			if (isMobile) return;
+			touchState.setState({
+				touchActive: true,
+				cell1: e.target.closest('.calendar-day'),
+				cell2: e.target.closest('.calendar-day'),
+			});
+		});
+		c.addEventListener('mousemove', (e) => {
+			if (isMobile) return;
+			const s = touchState.getState();
+			if (!s.touchActive) return;
+			const [x, y] = [e.pageX, e.pageY];
+			calendarDays.some((c) => {
+				const rect = c.getBoundingClientRect();
+				if (
+					x >= rect.left &&
+					x <= rect.right &&
+					y >= rect.top &&
+					y <= rect.bottom
+				) {
+					touchState.setState((prev) => {
+						return {
+							...prev,
+							cell2: c,
+						};
+					});
+					return true;
+				}
+			});
+		});
+		c.addEventListener('mouseup', (e) => {
+			if (isMobile) return;
+			touchState.setState((prev) => {
+				return { ...prev, touchActive: false };
+			});
+		});
 	});
 });
