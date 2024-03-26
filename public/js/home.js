@@ -31,6 +31,7 @@ const months = [
 		days: i === 1 ? 28 : [1, 3, 5, 7, 8, 10, 12].includes(i + 1) ? 31 : 30,
 	};
 });
+const eventName = document.querySelector('#event-name');
 const calendarArea = document.querySelector('.calendar');
 const monthControl = document.querySelector('#month-control');
 const em = document.querySelector('#event-month');
@@ -42,8 +43,22 @@ const yearForward = document.querySelector('#next-year');
 const monthForward = document.querySelector('#next-month');
 const eventTypeDate = getElementArray(document, 'input[name="event-type"]');
 const eventTypeTime = getElementArray(document, 'input[name="event-time"]');
+const timeArea = document.querySelector('#time-area');
 const timeRange = document.querySelector('#time-range');
+const timeList = document.querySelector('#time-list');
+const candidateTimes = document.querySelector('#candidate-times');
+const addTime = document.querySelector('#add-time');
+const h1 = timeRange.querySelector('#event-hour-early');
+const m1 = timeRange.querySelector('#event-minute-early');
+const a1 = timeRange.querySelector('#event-am-pm-early');
+const h2 = timeRange.querySelector('#event-hour-late');
+const m2 = timeRange.querySelector('#event-minute-late');
+const a2 = timeRange.querySelector('#event-am-pm-late');
 
+const name = document.querySelector('#user-name');
+const pw = document.querySelector('#password');
+const submitButton = document.querySelector('#create-event');
+const resetForm = document.querySelector('#reset-form');
 let isMobile;
 
 let sh;
@@ -184,9 +199,51 @@ const setNewMonth = (e) => {
 	sh.setState(state);
 };
 
-const showHideTime = (e) => {
-	if (e.detail.times) e.target.classList.remove('d-none');
+const handleTime = (e) => {
+	if (e.detail.time !== 'none') e.target.classList.remove('d-none');
 	else e.target.classList.add('d-none');
+
+	if (e.detail.time === 'continuous') {
+		timeList.classList.add('d-none');
+		timeRange.classList.remove('d-none');
+	} else if (e.detail.time === 'list') {
+		timeList.classList.remove('d-none');
+		timeRange.classList.add('d-none');
+	}
+
+	const h1 = Math.floor(e.detail.times[0] / 60);
+	const m1 = (e.detail.times[0] % 60) / 15;
+
+	const h2 = Math.floor(e.detail.times[1] / 60);
+	const m2 = (e.detail.times[1] % 60) / 15;
+
+	e.target.querySelector('#event-hour-early').selectedIndex = h1 % 12;
+	e.target.querySelector('#event-minute-early').selectedIndex = m1;
+	e.target.querySelector('#event-am-pm-early').selectedIndex = h1 > 12 ? 1 : 0;
+
+	e.target.querySelector('#event-hour-late').selectedIndex = h2 % 12;
+	e.target.querySelector('#event-minute-late').selectedIndex = m2;
+	e.target.querySelector('#event-am-pm-late').selectedIndex = h2 > 12 ? 1 : 0;
+};
+
+const handleAddTime = (e) => {
+	const hr = timeList.querySelector('#event-hour').value;
+	const min = timeList.querySelector('#event-minute').value;
+	const ampm = timeList.querySelector('#event-am-pm').value;
+
+	const state = sh.getState();
+
+	const t = Number(hr) * 60 + Number(min) + (ampm === 'pm' ? 720 : 0);
+
+	if (state.timeList.includes(t))
+		return showMessage(
+			'error',
+			`${hr}:${min === '0' ? '00' : min} ${ampm} has already been added`
+		);
+	else {
+		state.timeList.push(t);
+		sh.setState(state);
+	}
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -198,6 +255,16 @@ document.addEventListener('DOMContentLoaded', () => {
 		{ once: true }
 	);
 
+	//guess the user's time zone
+	const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	const ops = getElementArray(tzSelect, 'option');
+	ops.some((op) => {
+		if (op.value.toUpperCase() === userTZ.toUpperCase()) {
+			op.selected = true;
+			return true;
+		}
+	});
+
 	//populate the calendar
 	const date = new Date();
 	const month = months[date.getMonth()];
@@ -205,28 +272,29 @@ document.addEventListener('DOMContentLoaded', () => {
 	const day = date.getDate();
 
 	const startingState = {
-		dates: 'specific',
-		times: true,
+		dates: 'date',
+		time: 'continuous',
 		day,
 		month,
 		year,
 		selectedDates: [],
 		selectedWeekdays: [],
-		times: [],
+		times: [540, 1020],
+		timeList: [],
 		timeZone: tzSelect.value,
 	};
 
-	sh = new StateHandler(startingState);
+	sh = new StateHandler({ ...startingState });
 	sh.addWatcher(em, setMonthLabel);
 	sh.addWatcher(null, renderCalendar);
-	sh.addWatcher(timeRange, showHideTime);
+	sh.addWatcher(timeArea, handleTime);
 	sh.addWatcher(monthControl, (e) => {
-		if (e.detail.dates === 'specific') e.target.classList.remove('d-none');
+		if (e.detail.dates === 'date') e.target.classList.remove('d-none');
 		else e.target.classList.add('d-none');
 	});
 	sh.addWatcher(null, (state) => {
 		const rows = getElementArray(document, '.calendar-row[data-row]');
-		if (state.dates === 'specific') {
+		if (state.dates === 'date') {
 			rows.forEach((r) => {
 				r.classList.remove('d-none');
 			});
@@ -243,8 +311,49 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 		}
 	});
+	const removeCandidateTime = (e) => {
+		const removedTime = e.target.closest('.time-tile');
+		if (!removedTime) return;
+		const t = Number(removedTime.getAttribute('data-time'));
+		if (isNaN(t)) return;
 
-	[yearBack, yearForward, monthBack, monthForward].forEach((b) => {
+		sh.setState((prev) => {
+			return {
+				...prev,
+				timeList: prev.timeList.filter((ct) => {
+					return ct !== t;
+				}),
+			};
+		});
+	};
+	sh.addWatcher(timeList, (e) => {
+		const tl = e.detail.timeList;
+
+		if (tl.length === 0) {
+			candidateTimes.innerHTML = '(None)';
+			return;
+		}
+		candidateTimes.innerHTML = '';
+
+		tl.sort((a, b) => {
+			return a - b;
+		}).forEach((t) => {
+			const newTile = createElement('.time-tile');
+			newTile.setAttribute('data-time', t);
+			const sp = createElement('span');
+			sp.innerHTML = `${((Math.floor(t / 60) + 23) % 12) + 1}:${
+				t % 60 < 10 ? `0${t % 60}` : t % 60
+			} ${t >= 720 ? 'PM' : 'AM'}`;
+			newTile.appendChild(sp);
+			const b = createElement('button.btn-close');
+			b.setAttribute('type', 'button');
+			newTile.appendChild(b);
+			b.addEventListener('click', removeCandidateTime);
+			candidateTimes.appendChild(newTile);
+		});
+	});
+
+	[(yearBack, yearForward, monthBack, monthForward)].forEach((b) => {
 		b.addEventListener('click', setNewMonth);
 	});
 
@@ -266,27 +375,14 @@ document.addEventListener('DOMContentLoaded', () => {
 			sh.setState((prev) => {
 				return {
 					...prev,
-					times: e.target.value === 'time',
+					time: e.target.value,
 				};
 			});
 		});
 	});
 
-	//guess the user's time zone
-	const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
-	const ops = getElementArray(tzSelect, 'option');
-	ops.some((op) => {
-		if (op.value.toUpperCase() === userTZ.toUpperCase()) {
-			op.selected = true;
-			sh.setState((prev) => {
-				return {
-					...prev,
-					timeZone: op.value,
-				};
-			});
-			return true;
-		}
-	});
+	//add candidate time
+	addTime.addEventListener('click', handleAddTime);
 
 	//touch actions for calendar days
 	touchState.addWatcher(null, (state) => {
@@ -295,10 +391,9 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (!date1) return;
 		const s = sh.getState();
 		//if the starting cell was already selected, we are toggling off, otherwise we are toggling on.
-		console.log(s);
-		console.log(state.cell1);
+
 		const toggleOn =
-			s.dates === 'specific'
+			s.dates === 'date'
 				? !s.selectedDates.includes(date1)
 				: !s.selectedWeekdays.includes(
 						Number(state.cell1?.getAttribute('data-cell-no'))
@@ -327,7 +422,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		else {
 			//if we were toggling on...
 			if (toggleOn) {
-				if (s.dates === 'specific') {
+				if (s.dates === 'date') {
 					//...push any new dates into the array
 					for (var i = startIndex; i <= endIndex; i++) {
 						const d = calendarDays[i].getAttribute('data-date');
@@ -347,11 +442,11 @@ document.addEventListener('DOMContentLoaded', () => {
 					.slice(startIndex, endIndex + 1)
 					.map((c) => {
 						c.classList.remove('dragged-off');
-						return s.dates === 'specific'
+						return s.dates === 'date'
 							? c.getAttribute('data-date')
 							: Number(c.getAttribute('data-cell-no'));
 					});
-				if (s.dates === 'specific') {
+				if (s.dates === 'date') {
 					s.selectedDates = s.selectedDates.filter((d) => {
 						return !deselectedDates.includes(d);
 					});
@@ -442,4 +537,40 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 		});
 	});
+
+	//reset dates
+	resetForm.addEventListener('click', (e) => {
+		const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const ops = getElementArray(tzSelect, 'option');
+		ops.some((op) => {
+			if (op.value.toUpperCase() === userTZ.toUpperCase()) {
+				op.selected = true;
+				return true;
+			}
+		});
+
+		//populate the calendar
+		const date = new Date();
+		const month = months[date.getMonth()];
+		const year = date.getFullYear();
+		const day = date.getDate();
+
+		const state = sh.getState();
+
+		sh.setState({
+			...state,
+			selectedDates: [],
+			selectedWeekdays: [],
+			timeZone: tzSelect.value,
+		});
+	});
+
+	//submit form
+	const createRequestBody = () => {
+		const name = eventName.value;
+		const eventType = document.querySelector(
+			'input[name="event-type"]:checked'
+		)?.value;
+	};
+	submitButton.addEventListener('click', (e) => {});
 });

@@ -32,8 +32,7 @@ body {
 select {
 	height: 1.5rem;
 	padding: 0 10px;
-	-webkit-appearance: none;
-	border-radius: 0;
+	border-radius: 0 !important;
 }
 select > option {
 	height: 2rem;
@@ -171,8 +170,7 @@ input[type='radio']:not(:checked) + label {
 }
 
 .calendar.button {
-	-webkit-appearance: none;
-	border-radius: 0;
+	border-radius: 0 !important;
 }
 
 .calendar-row {
@@ -206,4 +204,18 @@ input[type='radio']:not(:checked) + label {
 
 .gray-out {
 	color: var(--light-gray-out);
+}
+
+div[data-bs-toggle='tooltip'] svg {
+	margin-bottom: 0.25rem;
+}
+
+.time-tile {
+	border-radius: 5px;
+	border: 1px solid var(--text-color);
+	display: flex;
+	flex-direction: row;
+	align-items: center;
+	padding: 3px;
+	margin: 3px;
 }

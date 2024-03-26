@@ -76,12 +76,7 @@ eventSchema.pre('save', async function (next) {
 						'You must specify a start and end of a time window for your event.'
 					)
 				);
-			if (this.times[0] >= this.times[1])
-				return next(
-					new AppError(
-						'The end of your time window must be after the beginning.'
-					)
-				);
+
 			if (
 				this.times[0] < 0 ||
 				this.times[0] > 1425 ||

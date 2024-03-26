@@ -18,8 +18,9 @@ block content
                 include home/time
                 include home/timezone
                 include home/login
-                .input-container
-                    button.btn.btn-primary.m-auto(type="submit") Create Event
+                .input-container.d-flex.flex-row.justify-content-around
+                    button#create-event.btn.btn-sm.btn-primary(type="button") Create Event
+                    button#reset-form.btn.btn-sm.btn-warning(type="button") Clear Dates
 
 block scripts 
     script(src="/js/home.js" type="module")

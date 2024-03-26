@@ -2,14 +2,16 @@
     .d-flex.mb-1.mx-2
         .w-15.d-flex 
             .m-auto Dates:
-        input#event-type-date(type="radio" name="event-type" value="specific" checked)
+        input#event-type-date(type="radio" name="event-type" value="date" checked)
         label.f-1(for="event-type-date") Specific Dates 
         input#event-type-weekday(type="radio" name="event-type" value="weekday")
         label.f-1(for="event-type-weekday") Days of Week
     .d-flex.mx-2
         .w-15.d-flex 
             .m-auto Times:
-        input#event-type-dt(type="radio" name="event-time" value="time" checked)
-        label.f-1(for="event-type-dt") Dates + Times
+        input#event-type-dct(type="radio" name="event-time" value="continuous" checked)
+        label.f-1(for="event-type-dct") Continuous
+        input#event-type-dst(type="radio" name="event-time" value="list")
+        label.f-1(for="event-type-dst") List
         input#event-type-d(type="radio" name="event-time" value="none")
         label.f-1(for="event-type-d") Dates only
