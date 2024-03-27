@@ -10,7 +10,7 @@ block content
                 include svg/logo_text
             .menu-container.d-flex.justify-content-end 
                 include svg/help
-        section.body-section.d-flex.flex-column.align-items-center 
+        section.body-section.d-flex.flex-column.align-items-center.mb-2
             form#create-event-form.w-100
                 include home/eventname
                 include home/eventtype
@@ -18,10 +18,12 @@ block content
                 include home/time
                 include home/timezone
                 include home/login
-                .input-container.d-flex.flex-row.justify-content-around
+                .input-container.d-flex.flex-row.justify-content-around.mb-2
                     button#create-event.btn.btn-sm.btn-primary(type="button") Create Event
                     button#reset-form.btn.btn-sm.btn-warning(type="button") Clear Dates
 
 block scripts 
+    script(src="/js/utils/moment.js")
+    script(Src="/js/utils/moment-timezone-with-data-10-year-range.js")
     script(src="/js/home.js" type="module")
                 

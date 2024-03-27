@@ -56,6 +56,7 @@ const m2 = timeRange.querySelector('#event-minute-late');
 const a2 = timeRange.querySelector('#event-am-pm-late');
 
 const name = document.querySelector('#user-name');
+const desc = document.querySelector('#event-description').value;
 const pw = document.querySelector('#password');
 const submitButton = document.querySelector('#create-event');
 const resetForm = document.querySelector('#reset-form');
@@ -98,8 +99,10 @@ const renderCalendar = (state) => {
 			? 29
 			: 28;
 
+	const attr = state.time === 'list' ? 'listDates' : 'selectedDates';
+
 	const fillCalendarDay = (box, date, today, gray) => {
-		if (state.selectedDates.includes(date)) box.classList.add('selected');
+		if (state[attr].includes(date)) box.classList.add('selected');
 		else box.classList.remove('selected');
 
 		const cOuter = createElement('.d-flex');
@@ -180,6 +183,7 @@ const renderCalendar = (state) => {
 
 const setNewMonth = (e) => {
 	const state = sh.getState();
+	console.log(e.target);
 	switch (e.target) {
 		case yearBack:
 			state.year = state.year - 1;
@@ -211,11 +215,11 @@ const handleTime = (e) => {
 		timeRange.classList.add('d-none');
 	}
 
-	const h1 = Math.floor(e.detail.times[0] / 60);
-	const m1 = (e.detail.times[0] % 60) / 15;
+	const h1 = Math.floor(e.detail.timeRange[0] / 60);
+	const m1 = (e.detail.timeRange[0] % 60) / 15;
 
-	const h2 = Math.floor(e.detail.times[1] / 60);
-	const m2 = (e.detail.times[1] % 60) / 15;
+	const h2 = Math.floor(e.detail.timeRange[1] / 60);
+	const m2 = (e.detail.timeRange[1] % 60) / 15;
 
 	e.target.querySelector('#event-hour-early').selectedIndex = h1 % 12;
 	e.target.querySelector('#event-minute-early').selectedIndex = m1;
@@ -227,23 +231,84 @@ const handleTime = (e) => {
 };
 
 const handleAddTime = (e) => {
+	const state = sh.getState();
+
+	if (state.time !== 'list')
+		return showMessage(
+			'error',
+			"Times are only selectable in 'list times' mode"
+		);
+	if (state.dates === 'date' && state.listDates.length === 0)
+		return showMessage('error', 'You must select at least one date');
+	if (state.dates === 'weekday' && state.selectedWeekdays.length === 0)
+		return showMessage('error', 'You must select at least one day of the week');
+
 	const hr = timeList.querySelector('#event-hour').value;
 	const min = timeList.querySelector('#event-minute').value;
 	const ampm = timeList.querySelector('#event-am-pm').value;
-
-	const state = sh.getState();
-
+	const h = (ampm === 'pm' ? 12 : 0) + Number(hr);
 	const t = Number(hr) * 60 + Number(min) + (ampm === 'pm' ? 720 : 0);
 
-	if (state.timeList.includes(t))
-		return showMessage(
-			'error',
-			`${hr}:${min === '0' ? '00' : min} ${ampm} has already been added`
-		);
-	else {
-		state.timeList.push(t);
-		sh.setState(state);
-	}
+	const attr = state.dates === 'date' ? 'listDates' : 'selectedWeekdays';
+	const dows = [
+		'Sunday',
+		'Monday',
+		'Tuesday',
+		'Wednesday',
+		'Thursday',
+		'Friday',
+		'Saturday',
+	];
+
+	state[attr].forEach((d) => {
+		if (state.dates === 'date') {
+			const timeString = `${d}T${h < 10 ? `0${h}` : h}:${min}:00.000`;
+			if (
+				!state.timeList.some((t) => {
+					return t.timeString === timeString;
+				})
+			)
+				state.timeList.push({
+					date: d,
+					time: `${hr === '00' ? 12 : hr}:${min} ${ampm.toUpperCase()}`,
+					type: 'date',
+					timeString,
+					id:
+						state.timeList.length === 0
+							? 0
+							: state.timeList[state.timeList.length - 1].id + 1,
+				});
+		} else {
+			const timeVal = d * 1440 + t;
+			if (
+				!state.timeList.some((t) => {
+					return t.timeString === timeVal;
+				})
+			)
+				state.timeList.push({
+					dayOfWeek: d,
+					date: dows[d],
+					time: `${hr === '00' ? 12 : hr}:${min} ${ampm.toUpperCase()}`,
+					type: 'weekday',
+					timeString: timeVal,
+					id:
+						state.timeList.length === 0
+							? 0
+							: state.timeList[state.timeList.length - 1].id + 1,
+				});
+		}
+	});
+	sh.setState(state);
+
+	// if (state.timeList.includes(t))
+	// 	return showMessage(
+	// 		'error',
+	// 		`${hr}:${min === '0' ? '00' : min} ${ampm} has already been added`
+	// 	);
+	// else {
+	// 	state.timeList.push(t);
+	// 	sh.setState(state);
+	// }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -256,7 +321,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	);
 
 	//guess the user's time zone
-	const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+	const userTZ = moment.tz.guess();
 	const ops = getElementArray(tzSelect, 'option');
 	ops.some((op) => {
 		if (op.value.toUpperCase() === userTZ.toUpperCase()) {
@@ -279,7 +344,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		year,
 		selectedDates: [],
 		selectedWeekdays: [],
-		times: [540, 1020],
+		timeRange: [540, 1020],
+		listDates: [],
 		timeList: [],
 		timeZone: tzSelect.value,
 	};
@@ -314,46 +380,72 @@ document.addEventListener('DOMContentLoaded', () => {
 	const removeCandidateTime = (e) => {
 		const removedTime = e.target.closest('.time-tile');
 		if (!removedTime) return;
-		const t = Number(removedTime.getAttribute('data-time'));
+		const t = Number(removedTime.getAttribute('data-id'));
 		if (isNaN(t)) return;
 
 		sh.setState((prev) => {
 			return {
 				...prev,
 				timeList: prev.timeList.filter((ct) => {
-					return ct !== t;
+					return ct.id !== t;
 				}),
 			};
 		});
 	};
 	sh.addWatcher(timeList, (e) => {
-		const tl = e.detail.timeList;
+		const tl = [...e.detail.timeList].filter((t) => {
+			return t.type === e.detail.dates;
+		});
 
 		if (tl.length === 0) {
 			candidateTimes.innerHTML = '(None)';
+			candidateTimes.classList.add('text-center');
 			return;
 		}
+		candidateTimes.classList.remove('text-center');
 		candidateTimes.innerHTML = '';
 
 		tl.sort((a, b) => {
-			return a - b;
+			if (e.detail.dates === 'date')
+				return a.timeString.localeCompare(b.timeString);
+			return a.timeString - b.timeString;
 		}).forEach((t) => {
-			const newTile = createElement('.time-tile');
-			newTile.setAttribute('data-time', t);
+			const headerStr =
+				e.detail.dates === 'weekday'
+					? t.date.split(' ')[0]
+					: new Date(t.date + 'T00:00:00.000').toLocaleDateString();
+
+			let container = candidateTimes.querySelector(
+				`.time-container[data-id="${headerStr}"] .time-tile-container`
+			);
+			if (!container) {
+				const newContainer = createElement('.time-container');
+				newContainer.setAttribute('data-id', headerStr);
+				const newHeader = createElement('.time-header');
+				newHeader.innerHTML = headerStr;
+				container = createElement('.time-tile-container');
+				newContainer.appendChild(newHeader);
+				newContainer.appendChild(container);
+				candidateTimes.appendChild(newContainer);
+			}
+
+			const newTile = createElement(
+				'.time-tile.d-flex.justify-content-between'
+			);
+			newTile.setAttribute('data-time', t.timeString);
+			newTile.setAttribute('data-id', t.id);
 			const sp = createElement('span');
-			sp.innerHTML = `${((Math.floor(t / 60) + 23) % 12) + 1}:${
-				t % 60 < 10 ? `0${t % 60}` : t % 60
-			} ${t >= 720 ? 'PM' : 'AM'}`;
+			sp.innerHTML = t.time;
 			newTile.appendChild(sp);
 			const b = createElement('button.btn-close');
 			b.setAttribute('type', 'button');
 			newTile.appendChild(b);
 			b.addEventListener('click', removeCandidateTime);
-			candidateTimes.appendChild(newTile);
+			container.appendChild(newTile);
 		});
 	});
 
-	[(yearBack, yearForward, monthBack, monthForward)].forEach((b) => {
+	[yearBack, yearForward, monthBack, monthForward].forEach((b) => {
 		b.addEventListener('click', setNewMonth);
 	});
 
@@ -390,11 +482,13 @@ document.addEventListener('DOMContentLoaded', () => {
 		const date1 = state.cell1?.getAttribute('data-date');
 		if (!date1) return;
 		const s = sh.getState();
-		//if the starting cell was already selected, we are toggling off, otherwise we are toggling on.
 
+		const attr = s.time === 'list' ? 'listDates' : 'selectedDates';
+
+		//if the starting cell was already selected, we are toggling off, otherwise we are toggling on.
 		const toggleOn =
 			s.dates === 'date'
-				? !s.selectedDates.includes(date1)
+				? !s[attr].includes(date1)
 				: !s.selectedWeekdays.includes(
 						Number(state.cell1?.getAttribute('data-cell-no'))
 				  );
@@ -427,7 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
 					for (var i = startIndex; i <= endIndex; i++) {
 						const d = calendarDays[i].getAttribute('data-date');
 						calendarDays[i].classList.remove('dragged-on');
-						if (!s.selectedDates.includes(d)) s.selectedDates.push(d);
+						if (!s[attr].includes(d)) s[attr].push(d);
 					}
 				} else {
 					for (var i = startIndex; i <= endIndex; i++) {
@@ -447,7 +541,7 @@ document.addEventListener('DOMContentLoaded', () => {
 							: Number(c.getAttribute('data-cell-no'));
 					});
 				if (s.dates === 'date') {
-					s.selectedDates = s.selectedDates.filter((d) => {
+					s[attr] = s[attr].filter((d) => {
 						return !deselectedDates.includes(d);
 					});
 				} else {
@@ -473,6 +567,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			});
 		});
 		c.addEventListener('touchmove', (e) => {
+			e.preventDefault();
 			const [x, y] = [e.changedTouches[0].pageX, e.changedTouches[0].pageY];
 
 			calendarDays.some((c) => {
@@ -493,14 +588,9 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			});
 		});
-		c.addEventListener('touchend', (e) => {
-			touchState.setState((prev) => {
-				return { ...prev, touchActive: false };
-			});
-		});
 
 		c.addEventListener('mousedown', (e) => {
-			if (isMobile) return;
+			if (isMobile || e.button !== 0) return;
 			touchState.setState({
 				touchActive: true,
 				cell1: e.target.closest('.calendar-day'),
@@ -530,11 +620,16 @@ document.addEventListener('DOMContentLoaded', () => {
 				}
 			});
 		});
-		c.addEventListener('mouseup', (e) => {
-			if (isMobile) return;
-			touchState.setState((prev) => {
-				return { ...prev, touchActive: false };
-			});
+	});
+	document.addEventListener('touchend', (e) => {
+		touchState.setState((prev) => {
+			return { ...prev, touchActive: false };
+		});
+	});
+	document.addEventListener('mouseup', (e) => {
+		if (isMobile) return;
+		touchState.setState((prev) => {
+			return { ...prev, touchActive: false };
 		});
 	});
 
@@ -566,11 +661,76 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	//submit form
-	const createRequestBody = () => {
-		const name = eventName.value;
-		const eventType = document.querySelector(
-			'input[name="event-type"]:checked'
-		)?.value;
-	};
-	submitButton.addEventListener('click', (e) => {});
+
+	submitButton.addEventListener('click', (e) => {
+		const state = sh.getState();
+		const ev = eventName.value;
+
+		if (!ev) return showMessage('error', 'You must specify an event name.');
+
+		let body = {
+			name: ev,
+			description: desc.value,
+			userName: name.value,
+			password: pw.value,
+			timeZone: tzSelect.value,
+		};
+
+		if (!body.userName || !body.password)
+			return showMessage(
+				'error',
+				'You must specify a name and password for yourself.'
+			);
+		if (state.dates === 'date') {
+			if (state.time === 'continuous') {
+				body = {
+					...body,
+					dates: state.selectedDates,
+					times: state.timeRange,
+					eventType: 'date-time',
+				};
+			} else if (state.time === 'list') {
+				body = {
+					...body,
+					eventType: 'date-list',
+					timeList: state.timeList,
+				};
+			} else {
+				body = {
+					...body,
+					eventType: 'date',
+					dates: state.selectedDates,
+				};
+			}
+		} else if (state.dates === 'weekday') {
+			if (state.time === 'continuous') {
+				body = {
+					...body,
+					eventType: 'weekday-time',
+					dates: state.selectedWeekdays,
+					times: state.timeRange,
+				};
+			} else if (state.time === 'list') {
+				body = {
+					...body,
+					eventType: 'weekday-list',
+					timeList: state.timeList,
+				};
+			} else {
+				body = {
+					...body,
+					eventType: 'weekday',
+					dates: state.selectedWeekdays,
+				};
+			}
+		}
+
+		handleRequest(`/api/v1/events`, 'POST', body, (res) => {
+			if (res.status === 'success') {
+				console.log(res);
+			} else {
+				showMessage('error', res.message);
+			}
+		});
+	});
 });

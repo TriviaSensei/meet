@@ -7,22 +7,22 @@
                     - if (i===9)
                         option(value=`${i}` selected)= `${i}`
                     - else 
-                        option(value=`${i}`)= `${i===0 ? 12 : i}`
+                        option(value=`${i === 0 ? "00" : i}`)= `${i===0 ? 12 : i}`
             .d-flex.mx-1
                 .m-auto :
             select#event-minute.me-2
                 - for (var i = 0;i<60;i+=15)
                     - if (i===0)
-                        option(value=`${i}` selected) 00
+                        option(value=`00` selected) 00
                     - else 
                         option(value=`${i}`)= `${i}`
             select#event-am-pm.me-2
                 option(value="am") AM 
                 option(value="pm") PM
             button#add-time.btn.btn-sm.btn-primary(type="button") Add
-        .d-flex.flex-column.align-items-center 
+        .d-flex.flex-column.align-items-center.w-100
             div Candidate times: 
-            #candidate-times.d-flex.flex-wrap= "(None)"
+            #candidate-times.d-flex.flex-column.w-100= "(None)"
     #time-range.d-flex.w-100.justify-content-around
             .input-container.align-items-center(style="border-right:1px solid var(--text-color);")
                 .input-label Start time between...
@@ -38,7 +38,7 @@
                     select#event-minute-early.me-2
                         - for (var i = 0;i<60;i+=15)
                             - if (i===0)
-                                option(value=`${i}` selected) 00
+                                option(value=`00` selected) 00
                             - else 
                                 option(value=`${i}`)= `${i}`
                     select#event-am-pm-early
@@ -61,7 +61,7 @@
                     select#event-minute-late.me-2
                         - for (var i = 0;i<60;i+=15)
                             - if (i===0)
-                                option(value=`${i}` selected) 00
+                                option(value=`00` selected) 00
                             - else 
                                 option(value=`${i}`)= `${i}`
                     select#event-am-pm-late

@@ -227,29 +227,21 @@ exports.updateEvent = catchAsync(async (req, res, next) => {
 });
 
 exports.createEvent = catchAsync(async (req, res, next) => {
-	if (!Array.isArray(req.body.dates))
-		return next(new AppError('Invalid value(s) for event date.', 400));
-
-	let datesValid = true;
-	req.body.dates = req.body.dates.map((d) => {
-		if (!Date.parse(d)) datesValid = false;
-		return Date.parse(d);
-	});
-
-	if (!datesValid) return next(new AppError('Invalid date specified', 400));
-
 	if (!req.body.userName || !req.body.password)
 		return next(
 			new AppError('You must specify an initial user and password', 400)
 		);
 
-	req.body.url = randomString(16);
-	let existing = await Event.findOne({
-		url: req.body.url,
-	});
-	while (existing) {
+	let existing;
+	do {
 		req.body.url = randomString(16);
-	}
+		existing = await Event.findOne({
+			url: req.body.url,
+		});
+	} while (existing);
+
+	if (!moment.tz.names().includes(req.body.timeZone))
+		return next(new AppError('Invalid time zone specified', 400));
 
 	req.body.users = [
 		{
@@ -261,6 +253,62 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 			availability: [],
 		},
 	];
+
+	if (Array.isArray(req.body.times) && req.body.eventType === 'date-time') {
+		if (req.body.times[1] < req.body.times[0])
+			req.body.times[1] = req.body.times[1] + 1440;
+	}
+
+	console.log(req.body);
+
+	if (req.body.eventType === 'date-time' || req.body.eventType === 'date') {
+		if (!Array.isArray(req.body.dates))
+			return next(new AppError('Invalid value(s) for event date.', 400));
+
+		let datesValid = true;
+		req.body.dates = req.body.dates.map((d) => {
+			if (!Date.parse(d)) datesValid = false;
+			return Date.parse(d);
+		});
+		if (!datesValid) return next(new AppError('Invalid date specified', 400));
+	} else if (req.body.eventType === 'date-list') {
+		req.body.dates = req.body.timeList.map((t) => {
+			let m = moment.tz(t.timeString, req.body.timeZone).format();
+			return m;
+		});
+		req.body.timeZone = 'GMT';
+	} else if (req.body.eventType === 'weekday-time') {
+		let datesValid = true;
+		if (req.body.dates.length > 7)
+			return next(new AppError('Too many weekdays specified', 400));
+		req.body.dates = req.body.dates.map((d) => {
+			if (d < 0 || d > 6 || d !== Math.floor(d)) datesValid = false;
+			return new Date(`2024-03-${10 + d}`);
+		});
+		if (!datesValid) return next(new AppError('Invalid date specified', 400));
+	} else if (req.body.eventType === 'weekday-list') {
+		let datesValid = true;
+		req.body.dates = req.body.timeList.map((d) => {
+			if (
+				d.dayOfWeek < 0 ||
+				d.dayOfWeek > 6 ||
+				d.dayOfWeek !== Math.floor(d.dayOfWeek)
+			)
+				datesValid = false;
+			return new Date(`2024-03-${10 + d.dayOfWeek} ${d.time}`);
+		});
+		req.body.timeZone = 'GMT';
+		if (!datesValid) return next(new AppError('Invalid date specified', 400));
+	} else if (req.body.eventType === 'weekday') {
+		let datesValid = true;
+		req.body.dates = req.body.dates.map((d) => {
+			if (d < 0 || d > 6 || d !== Math.floor(d)) datesValid = false;
+			return new Date(`2024-03-${10 + d}`);
+		});
+		if (!datesValid) return next(new AppError('Invalid date specified', 400));
+	} else {
+		return next(new AppError('Invalid event type', 400));
+	}
 
 	const doc = await Event.create(req.body);
 

@@ -19,8 +19,16 @@ const validateArrayLength = (min, max) => {
 	};
 };
 
+//7 days
+const deletionPeriod = 1000 * 60 * 60 * 24 * 7;
+
 const eventSchema = new mongoose.Schema({
 	name: {
+		type: String,
+		required: [true, 'You must specify the name of your event.'],
+		validate,
+	},
+	description: {
 		type: String,
 		validate,
 	},
@@ -32,7 +40,14 @@ const eventSchema = new mongoose.Schema({
 	eventType: {
 		type: String,
 		required: [true, 'You must specify the scheduling method.'],
-		enum: ['date-time', 'date', 'weekday-time', 'weekday'],
+		enum: [
+			'date-time',
+			'date-list',
+			'date',
+			'weekday-time',
+			'weekday-list',
+			'weekday',
+		],
 		default: 'date-time',
 	},
 	dates: {
@@ -49,6 +64,17 @@ const eventSchema = new mongoose.Schema({
 		enum: moment.tz.names(),
 	},
 	users: [Object],
+	created: Date,
+	scheduledDeletion: Date,
+});
+
+eventSchema.pre('save', async function (next) {
+	//set up scheduled deletion
+	if (!this.isNew) return next();
+
+	this.created = new Date();
+
+	next();
 });
 
 eventSchema.pre('save', async function (next) {
