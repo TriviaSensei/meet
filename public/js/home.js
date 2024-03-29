@@ -56,7 +56,7 @@ const m2 = timeRange.querySelector('#event-minute-late');
 const a2 = timeRange.querySelector('#event-am-pm-late');
 
 const name = document.querySelector('#user-name');
-const desc = document.querySelector('#event-description').value;
+const desc = document.querySelector('#event-description');
 const pw = document.querySelector('#password');
 const submitButton = document.querySelector('#create-event');
 const resetForm = document.querySelector('#reset-form');
@@ -635,7 +635,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	//reset dates
 	resetForm.addEventListener('click', (e) => {
-		const userTZ = Intl.DateTimeFormat().resolvedOptions().timeZone;
+		const userTZ = moment.tz.guess();
 		const ops = getElementArray(tzSelect, 'option');
 		ops.some((op) => {
 			if (op.value.toUpperCase() === userTZ.toUpperCase()) {
@@ -644,18 +644,15 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 
-		//populate the calendar
-		const date = new Date();
-		const month = months[date.getMonth()];
-		const year = date.getFullYear();
-		const day = date.getDate();
-
 		const state = sh.getState();
 
 		sh.setState({
 			...state,
 			selectedDates: [],
 			selectedWeekdays: [],
+			timeRange: [540, 1020],
+			listDates: [],
+			timeList: [],
 			timeZone: tzSelect.value,
 		});
 	});

@@ -8,6 +8,53 @@ const jwt = require('jsonwebtoken');
 const { promisify } = require('util');
 const noBadWords = (val) => !filter.isProfane(val);
 
+//each document will be deleted 7 days after the latest possible meeting date.
+const deletionPeriod = 1000 * 60 * 60 * 24 * 7;
+
+const autoDeleteEvent = (url) => {
+	return async () => {
+		console.log(`Deleting event ${url}`);
+		await Event.deleteOne({ url });
+	};
+};
+
+const scheduleDeletes = async () => {
+	const allEvents = await Event.find();
+	allEvents.forEach(async (ev) => {
+		let timeUntilDelete;
+		if (!ev.scheduledDeletion) {
+			if (['date-list', 'date-time', 'date'].includes(ev.eventType)) {
+				const latestDate = ev.dates.reduce((p, c) => {
+					return new Date(p) > new Date(c) ? p : c;
+				});
+				const deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
+				timeUntilDelete = new Date(deleteDate) - new Date();
+				ev.scheduledDeletion = deleteDate;
+			} else {
+				if (!ev.created) ev.created = new Date();
+				const deleteDate = new Date(
+					Date.parse(ev.created) + deletionPeriod * 4
+				);
+				ev.scheduledDeletion = deleteDate;
+				timeUntilDelete = new Date(deleteDate) - new Date();
+			}
+			await ev.save();
+		} else {
+			timeUntilDelete = new Date(ev.scheduledDeletion) - new Date();
+		}
+		// const d = Math.floor(timeUntilDelete / msInDay);
+		// const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
+		// const m = Math.floor((timeUntilDelete % 3600000) / 60000);
+		// const s = (timeUntilDelete % 60000) / 1000;
+		// console.log(
+		// 	`Event ${ev.url} will be deleted on ${deleteDate} (${d}d${h}h${m}m${s}s)`
+		// );
+
+		setTimeout(autoDeleteEvent(ev.url), timeUntilDelete);
+	});
+};
+scheduleDeletes();
+
 const signToken = (url, id) => {
 	return jwt.sign({ url, id }, process.env.JWT_SECRET, {
 		expiresIn: process.env.JWT_EXPIRES_IN,
@@ -259,23 +306,60 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 			req.body.times[1] = req.body.times[1] + 1440;
 	}
 
-	console.log(req.body);
+	let timeUntilDelete;
+	req.body.created = new Date();
+	if (req.body.eventType.split('-')[0] === 'date') {
+		// console.log(this.dates);
+		const latestDate = req.body.dates.reduce((p, c) => {
+			return new Date(p) > new Date(c) ? p : c;
+		});
+		const deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
+		timeUntilDelete = new Date(deleteDate) - new Date();
+		req.body.scheduledDeletion = deleteDate;
+	} else {
+		const deleteDate = new Date(
+			Date.parse(req.body.created) + deletionPeriod * 4
+		);
+		req.body.scheduledDeletion = deleteDate;
+		timeUntilDelete = new Date(deleteDate) - new Date();
+	}
+
+	setTimeout(autoDeleteEvent(req.body.url), timeUntilDelete);
+	// const msInDay = 1000 * 60 * 60 * 24;
+	// const d = Math.floor(timeUntilDelete / msInDay);
+	// const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
+	// const m = Math.floor((timeUntilDelete % 3600000) / 60000);
+	// const s = (timeUntilDelete % 60000) / 1000;
+	// console.log(
+	// 	`Event ${req.body.url} will be deleted on ${req.body.scheduledDeletion} (${d}d ${h}h ${m}m ${s}s)`
+	// );
 
 	if (req.body.eventType === 'date-time' || req.body.eventType === 'date') {
 		if (!Array.isArray(req.body.dates))
 			return next(new AppError('Invalid value(s) for event date.', 400));
 
 		let datesValid = true;
+		let laterDate = false;
 		req.body.dates = req.body.dates.map((d) => {
-			if (!Date.parse(d)) datesValid = false;
-			return Date.parse(d);
+			const pd = Date.parse(d);
+			const now = moment(new Date()).tz('GMT').startOf('day');
+			if (!pd) datesValid = false;
+			else if (new Date(pd) >= now) laterDate = true;
+			return pd;
 		});
 		if (!datesValid) return next(new AppError('Invalid date specified', 400));
+		if (!laterDate)
+			return next(new AppError('At least one date must be today or later'));
 	} else if (req.body.eventType === 'date-list') {
+		let laterDate = false;
+
 		req.body.dates = req.body.timeList.map((t) => {
 			let m = moment.tz(t.timeString, req.body.timeZone).format();
+			if (new Date(m) >= new Date()) laterDate = true;
 			return m;
 		});
+		if (!laterDate)
+			return next(new AppError('At least one time must be in the future'));
 		req.body.timeZone = 'GMT';
 	} else if (req.body.eventType === 'weekday-time') {
 		let datesValid = true;
