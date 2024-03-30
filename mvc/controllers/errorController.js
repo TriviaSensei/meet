@@ -13,7 +13,7 @@ const sendErrorDev = (err, req, res) => {
 	return res.status(err.statusCode).render('home', {
 		title: 'Home',
 		alert: {
-			message: `Could not find ${req.originalUrl}`,
+			message: `Could not find that event`,
 			status: 'error',
 			duration: 1000,
 		},

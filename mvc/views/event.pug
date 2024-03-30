@@ -1,0 +1,20 @@
+extends _base
+
+block styles 
+    link(rel="stylesheet" href="/css/event.css")
+
+block modals
+
+block content 
+    .app-container
+        include components/header
+        section.body-section.d-flex.flex-column.align-items-center.mb-2 
+            include events/login
+            - if (event.eventType === 'date-time')
+                include events/date-time
+
+
+block scripts 
+    script(src="/js/utils/moment.js")
+    script(src="/js/utils/moment-timezone-with-data-10-year-range.js")
+    script(src="/js/event.js" type="module")

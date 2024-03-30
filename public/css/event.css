@@ -1,0 +1,23 @@
+.app-container {
+	display: flex;
+	flex-direction: column;
+}
+
+.body-section {
+	flex: 1;
+}
+
+.nav-link:not(.active) {
+	border: 1px solid black;
+	color: var(--text-color);
+}
+
+.nav-link.active {
+	border-bottom: 3px solid #7f0000 !important;
+	border-collapse: collapse;
+}
+
+.tab-pane {
+	height: 100%;
+	overflow-y: auto;
+}

@@ -13,8 +13,8 @@ const deletionPeriod = 1000 * 60 * 60 * 24 * 7;
 
 const autoDeleteEvent = (url) => {
 	return async () => {
-		console.log(`Deleting event ${url}`);
 		await Event.deleteOne({ url });
+		ass;
 	};
 };
 
@@ -131,9 +131,17 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 			token = req.cookies.jwt;
 		}
 
+		if (!token) return next();
+
 		const decoded = await promisify(jwt.verify)(token, process.env.JWT_SECRET);
+		if (!decoded) return next();
+
+		if (decoded.url !== req.params.id) return next();
+
 		// check if the user exists
 		const event = await Event.findOne({ url: decoded.url });
+		if (!event) return next();
+
 		const currentUser = event.users.find((u) => {
 			return u.id === decoded.id;
 		});
@@ -141,11 +149,13 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 			return next();
 		}
 
+		const { name, timeZone, availability } = currentUser;
 		//we've passed the gauntlet. There is a logged in user.
 		res.locals.user = {
-			...currentUser,
-			password: '',
-			url: event.url,
+			name,
+			timeZone,
+			availability,
+			url: decoded.url,
 		};
 		next();
 	} catch (err) {

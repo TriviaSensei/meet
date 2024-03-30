@@ -1,4 +1,4 @@
-import { showMessage } from './utils/messages.js';
+import { showMessage, showMessageStatic } from './utils/messages.js';
 import { StateHandler } from './utils/stateHandler.js';
 import { handleRequest } from './utils/requestHandler.js';
 import { createElement } from './utils/createElementFromSelector.js';
@@ -322,12 +322,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	//guess the user's time zone
 	const userTZ = moment.tz.guess();
-	const ops = getElementArray(tzSelect, 'option');
-	ops.some((op) => {
-		if (op.value.toUpperCase() === userTZ.toUpperCase()) {
-			op.selected = true;
-			return true;
-		}
+	const allTimeZones = moment.tz.names();
+	allTimeZones.forEach((tz) => {
+		const op = createElement('option');
+		op.setAttribute('value', tz);
+		op.innerHTML = tz;
+		tzSelect.appendChild(op);
+		if (tz === userTZ) op.setAttribute('selected', true);
 	});
 
 	//populate the calendar
@@ -660,6 +661,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	//submit form
 
 	submitButton.addEventListener('click', (e) => {
+		submitButton.disabled = true;
 		const state = sh.getState();
 		const ev = eventName.value;
 
@@ -724,9 +726,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
 		handleRequest(`/api/v1/events`, 'POST', body, (res) => {
 			if (res.status === 'success') {
-				console.log(res);
+				showMessageStatic('info', 'Successfully created event.', 2000);
+				setTimeout(() => {
+					location.href = `/${res.event.url}`;
+				}, 1000);
 			} else {
 				showMessage('error', res.message);
+				submitButton.disabled = false;
 			}
 		});
 	});
