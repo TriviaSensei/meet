@@ -5,6 +5,7 @@
 	--dragged-date: yellow;
 	--cal-width: 45%;
 	--today: blue;
+	--gray: #444444;
 	--gray-out: #aaaaaa;
 	--light-gray-out: #bbbbbb;
 }
@@ -20,7 +21,7 @@ body {
 	color: var(--text-color);
 	touch-action: manipulation;
 	overflow-x: hidden;
-	overflow-y: auto;
+	overflow-y: hidden;
 }
 
 /* div {

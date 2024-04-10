@@ -17,11 +17,6 @@
 	border-collapse: collapse;
 }
 
-.tab-pane.active {
-	width: 100%;
-	height: 100%;
-}
-
 .tab-wrapper {
 	max-height: 100%;
 	max-width: 100%;
@@ -37,93 +32,13 @@
 }
 
 .calendar {
+	width: 100%;
+	max-height: 100%;
+	max-width: 100%;
 	padding: 1rem;
 	display: flex;
 	flex: 1;
 	flex-direction: row;
-	table {
-		position: relative;
-		border-collapse: collapse;
-		tr:first-child {
-			position: sticky;
-			top: 0;
-			z-index: 2;
-			td {
-				background-color: var(--bg-color);
-				display: flex;
-				flex-direction: column;
-				font-weight: bold;
-				.weekday {
-					font-size: 0.9rem;
-					text-wrap: nowrap;
-					text-align: center;
-				}
-				.date {
-					font-size: 0.6rem;
-					text-wrap: nowrap;
-					text-align: center;
-				}
-			}
-			td:not(:first-child):not(.spacer) {
-				border-left: 1px solid var(--text-color);
-				width: 3.2em;
-				border-bottom: 2px solid var(--text-color);
-			}
-			td.spacer {
-				opacity: 0;
-			}
-		}
-		tr {
-			display: flex;
-			flex-direction: row;
-			position: relative;
-			margin: 0;
-			td:not(:first-child):not(.spacer) {
-				border-left: 1px solid var(--text-color);
-				border-right: 1px solid var(--text-color);
-				border-bottom: 1px dotted var(--text-color);
-			}
-			td:first-child {
-				position: sticky;
-				background-color: var(--bg-color);
-				left: 0;
-				z-index: 3;
-			}
-			td:not(:first-child):not(.spacer) {
-				width: 3.2em;
-			}
-			td.selected {
-				background-color: var(--selected-date);
-			}
-			td.disabled {
-				background-color: var(--gray);
-			}
-		}
-		tr:not(:first-child) {
-			height: 10px;
-		}
-		tr:nth-child(4n + 1) td:not(:first-child):not(.spacer) {
-			border-bottom: 2px solid var(--text-color);
-		}
-		td.spacer {
-			border: none;
-			width: 15px;
-			position: relative;
-			opacity: 1;
-			.time-label {
-				position: absolute;
-				bottom: 0%;
-				right: 10%;
-				/* transform: translate(0, 25%); */
-				font-size: 0.7rem;
-				text-wrap: nowrap;
-				z-index: 3;
-			}
-		}
-		td.spacer:first-child {
-			width: 30px;
-		}
-	}
 }
 
 .calendar-column {
@@ -174,6 +89,17 @@
 	}
 }
 
+.time-column {
+	width: 50px;
+	position: relative;
+	.time-label {
+		position: absolute;
+		font-size: 0.8rem;
+		text-wrap: nowrap;
+		text-align: right;
+	}
+}
+
 ::-webkit-scrollbar-corner {
 	background: var(--bg-color);
 }
@@ -196,4 +122,9 @@
 	flex: 1;
 	overflow: hidden;
 	max-width: 100%;
+}
+
+.tab-pane.active {
+	width: 100%;
+	height: 100%;
 }

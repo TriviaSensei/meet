@@ -685,7 +685,14 @@ document.addEventListener('DOMContentLoaded', () => {
 				body = {
 					...body,
 					dates: state.selectedDates,
-					times: state.timeRange,
+					times: [
+						Number(h1.value) * 60 +
+							Number(m1.value) +
+							(a1.value === 'pm' ? 720 : 0),
+						Number(h2.value) * 60 +
+							Number(m2.value) +
+							(a2.value === 'pm' ? 720 : 0),
+					],
 					eventType: 'date-time',
 				};
 			} else if (state.time === 'list') {
@@ -707,7 +714,14 @@ document.addEventListener('DOMContentLoaded', () => {
 					...body,
 					eventType: 'weekday-time',
 					dates: state.selectedWeekdays,
-					times: state.timeRange,
+					times: [
+						Number(h1.value) * 60 +
+							Number(m1.value) +
+							(a1.value === 'pm' ? 720 : 0),
+						Number(h2.value) * 60 +
+							Number(m2.value) +
+							(a2.value === 'pm' ? 720 : 0),
+					],
 				};
 			} else if (state.time === 'list') {
 				body = {
@@ -723,7 +737,6 @@ document.addEventListener('DOMContentLoaded', () => {
 				};
 			}
 		}
-
 		handleRequest(`/api/v1/events`, 'POST', body, (res) => {
 			if (res.status === 'success') {
 				showMessageStatic('info', 'Successfully created event.', 2000);

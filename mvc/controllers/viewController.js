@@ -18,7 +18,6 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 		return next(new AppError('Could not find that event', 404));
 	}
 
-	console.log(event);
 	res.status(200).render('event', {
 		title: `${event.name}`,
 		event,

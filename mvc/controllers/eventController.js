@@ -10,11 +10,12 @@ const noBadWords = (val) => !filter.isProfane(val);
 
 //each document will be deleted 7 days after the latest possible meeting date.
 const deletionPeriod = 1000 * 60 * 60 * 24 * 7;
+const msInDay = 1000 * 60 * 60 * 24;
+const max32 = 2147483647;
 
 const autoDeleteEvent = (url) => {
 	return async () => {
 		await Event.deleteOne({ url });
-		ass;
 	};
 };
 
@@ -22,35 +23,36 @@ const scheduleDeletes = async () => {
 	const allEvents = await Event.find();
 	allEvents.forEach(async (ev) => {
 		let timeUntilDelete;
+		let deleteDate;
 		if (!ev.scheduledDeletion) {
 			if (['date-list', 'date-time', 'date'].includes(ev.eventType)) {
 				const latestDate = ev.dates.reduce((p, c) => {
 					return new Date(p) > new Date(c) ? p : c;
 				});
-				const deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
+				deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
 				timeUntilDelete = new Date(deleteDate) - new Date();
 				ev.scheduledDeletion = deleteDate;
 			} else {
 				if (!ev.created) ev.created = new Date();
-				const deleteDate = new Date(
-					Date.parse(ev.created) + deletionPeriod * 4
-				);
+				deleteDate = new Date(Date.parse(ev.created) + deletionPeriod * 4);
 				ev.scheduledDeletion = deleteDate;
 				timeUntilDelete = new Date(deleteDate) - new Date();
 			}
 			await ev.save();
 		} else {
 			timeUntilDelete = new Date(ev.scheduledDeletion) - new Date();
+			deleteDate = ev.scheduledDeletion;
 		}
-		// const d = Math.floor(timeUntilDelete / msInDay);
-		// const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
-		// const m = Math.floor((timeUntilDelete % 3600000) / 60000);
-		// const s = (timeUntilDelete % 60000) / 1000;
-		// console.log(
-		// 	`Event ${ev.url} will be deleted on ${deleteDate} (${d}d${h}h${m}m${s}s)`
-		// );
+		const d = Math.floor(timeUntilDelete / msInDay);
+		const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
+		const m = Math.floor((timeUntilDelete % 3600000) / 60000);
+		const s = (timeUntilDelete % 60000) / 1000;
+		console.log(
+			`Event ${ev.url} will be deleted on ${deleteDate} (${d}d ${h}h ${m}m ${s}s)`
+		);
 
-		setTimeout(autoDeleteEvent(ev.url), timeUntilDelete);
+		if (timeUntilDelete <= max32)
+			setTimeout(autoDeleteEvent(ev.url), timeUntilDelete);
 	});
 };
 scheduleDeletes();
@@ -284,6 +286,7 @@ exports.updateEvent = catchAsync(async (req, res, next) => {
 });
 
 exports.createEvent = catchAsync(async (req, res, next) => {
+	console.log(req.body);
 	if (!req.body.userName || !req.body.password)
 		return next(
 			new AppError('You must specify an initial user and password', 400)
@@ -334,7 +337,8 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 		timeUntilDelete = new Date(deleteDate) - new Date();
 	}
 
-	setTimeout(autoDeleteEvent(req.body.url), timeUntilDelete);
+	if (timeUntilDelete <= max32)
+		setTimeout(autoDeleteEvent(req.body.url), timeUntilDelete);
 	// const msInDay = 1000 * 60 * 60 * 24;
 	// const d = Math.floor(timeUntilDelete / msInDay);
 	// const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
@@ -406,6 +410,7 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 	const doc = await Event.create(req.body);
 
+	console.log(doc);
 	createAndSendToken(doc, 0, 200, req, res);
 });
 

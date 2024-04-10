@@ -1,9 +1,9 @@
 #login-container.input-container 
+    #data-area(data-user=`${user ? JSON.stringify(user) : ''}` data-event=`${JSON.stringify(event)}`)
     - if (user)
         .d-flex.flex-row.w-100.my-2
             span.bold.me-2 Logged in as: 
             span= user.name
-            #data-area(data-user=`${JSON.stringify(user)}` data-event=`${JSON.stringify(event)}`)
     - else 
         #login.d-flex.w-100.justify-content-around.mb-2
             .input-container
@@ -19,7 +19,9 @@
                     div(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Your name and password are for this event only. There is no length or complexity requirement.") 
                         include ../svg/help
                 .d-flex
-                    input#password(type="password" name="password" placeholder='Password')
+                    input#password.me-2(type="password" name="password" placeholder='Password')
+            .d-flex.align-items-end(style="padding:3px;")
+                button.btn.btn-primary.btn-sm.text-nowrap#login Login
     .input-container
         .input-label Time zone:
         select#timezone
