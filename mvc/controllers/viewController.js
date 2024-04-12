@@ -18,6 +18,13 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 		return next(new AppError('Could not find that event', 404));
 	}
 
+	event.users = event.users.map((u) => {
+		return {
+			...u,
+			password: '',
+		};
+	});
+
 	res.status(200).render('event', {
 		title: `${event.name}`,
 		event,

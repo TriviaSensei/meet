@@ -4,8 +4,10 @@ import { handleRequest } from './utils/requestHandler.js';
 import { createElement } from './utils/createElementFromSelector.js';
 import { getElementArray } from './utils/getElementArray.js';
 
-let userData;
-
+const loginContainer = document.querySelector('#login-container');
+const login = document.querySelector('#login-button');
+const userName = document.querySelector('#user-name');
+const password = document.querySelector('#password');
 const tzSelect = document.querySelector('#timezone');
 const myCalendarArea = document.querySelector('#my-calendar');
 const teamCalendarArea = document.querySelector('#team-calendar');
@@ -49,28 +51,49 @@ let touchState = new StateHandler({
 	y: null,
 });
 
+let eventState, userState;
+
 const touchStart = (e) => {
+	const state = touchState.getState();
+	if (state.isMobile && e.type === 'mousedown') return;
+	const user = userState.getState();
+	if (!user.name) return;
 	const tt = e.type === 'touchstart' ? e.targetTouches[0] : e;
-	touchState.setState({
-		touchActive: true,
-		cell1: e.target.closest('.calendar-box'),
-		cell2: e.target.closest('.calendar-box'),
-		x: tt.pageX,
-		y: tt.pageY,
+	touchState.setState((prev) => {
+		return {
+			...prev,
+			touchActive: true,
+			cell1: e.target.closest('td'),
+			cell2: e.target.closest('td'),
+			x: tt.pageX,
+			y: tt.pageY,
+		};
 	});
-	console.log(touchState.getState());
 };
 
-let scrollInterval = null;
+let xScrollInterval = null;
+let yScrollInterval = null;
+const checkForCell = (x, y) => {
+	let toReturn = getElementArray(document, '.time-cell').find((c) => {
+		const rect = c.getBoundingClientRect();
+		if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom)
+			return true;
+	});
+	return toReturn;
+};
 const touchMove = (e) => {
 	const state = touchState.getState();
 
-	if (e.type === 'mousemove' && !state.touchActive) return;
+	if (!state.touchActive) return;
+	const user = userState.getState();
+	if (!user.name) return;
 
 	//number of pixels on the sides of the box where autoscroll will be activated
-	const bufferZone = 50;
+	const bufferZone = document
+		.querySelector('.time-cell')
+		.getBoundingClientRect().width;
 	//amount to scroll
-	const delta = 100;
+	const delta = bufferZone;
 	//scroll interval in ms
 	const interval = 125;
 
@@ -89,35 +112,25 @@ const touchMove = (e) => {
 	const yDir = state.y > y ? -1 : state.y === y ? 0 : 1;
 
 	// are we over a second cell?
-	getElementArray(document, '.calendar-box').some((c) => {
-		const rect = c.getBoundingClientRect();
-		if (
-			x >= rect.left &&
-			x <= rect.right &&
-			y >= rect.top &&
-			y <= rect.bottom
-		) {
-			touchState.setState((prev) => {
-				return {
-					...prev,
-					cell2: c,
-					x,
-					y,
-				};
-			});
-			return true;
-		}
-	});
+	const cell2 = checkForCell(x, y);
+	if (cell2)
+		touchState.setState((prev) => {
+			return {
+				...prev,
+				cell2: cell2,
+				x,
+				y,
+			};
+		});
 
 	//are we close to the edge of the box, and should we scroll?
-	const calendar = e.target.closest('.tab-pane#my-calendar-pane');
+	const calendar = e.target.closest('.tab-wrapper');
 	if (!calendar) return;
 	const calRect = calendar.getBoundingClientRect();
 	//moving left and in the left buffer zone
-	//moving left
+	if (xScrollInterval) clearInterval(xScrollInterval);
 	if (xDir <= 0 && x <= calRect.left + bufferZone) {
-		if (scrollInterval) clearInterval(scrollInterval);
-		scrollInterval = setInterval(() => {
+		xScrollInterval = setInterval(() => {
 			$(`#${calendar.getAttribute('id')}`)
 				.stop()
 				.animate(
@@ -127,12 +140,21 @@ const touchMove = (e) => {
 					},
 					interval
 				);
+			const c = checkForCell(x, y);
+			if (c)
+				touchState.setState((prev) => {
+					return {
+						...prev,
+						cell2: c,
+						x,
+						y,
+					};
+				});
 		}, interval);
 	}
 	//moving right
 	else if (xDir >= 0 && x >= calRect.right - bufferZone) {
-		if (scrollInterval) clearInterval(scrollInterval);
-		scrollInterval = setInterval(() => {
+		xScrollInterval = setInterval(() => {
 			$(`#${calendar.getAttribute('id')}`)
 				.stop()
 				.animate(
@@ -142,12 +164,23 @@ const touchMove = (e) => {
 					},
 					interval
 				);
+			const c = checkForCell(x, y);
+			if (c)
+				touchState.setState((prev) => {
+					return {
+						...prev,
+						cell2: c,
+						x,
+						y,
+					};
+				});
 		}, interval);
 	}
+
 	//moving down
-	else if (yDir >= 0 && y >= calRect.bottom - bufferZone) {
-		if (scrollInterval) clearInterval(scrollInterval);
-		scrollInterval = setInterval(() => {
+	if (yScrollInterval) clearInterval(yScrollInterval);
+	if (yDir >= 0 && y >= calRect.bottom - bufferZone) {
+		yScrollInterval = setInterval(() => {
 			$(`#${calendar.getAttribute('id')}`)
 				.stop()
 				.animate(
@@ -159,9 +192,8 @@ const touchMove = (e) => {
 		}, interval);
 	}
 	//moving up
-	else if (yDir >= 0 && y <= calRect.top + bufferZone) {
-		if (scrollInterval) clearInterval(scrollInterval);
-		scrollInterval = setInterval(() => {
+	else if (yDir <= 0 && y <= calRect.top + bufferZone) {
+		yScrollInterval = setInterval(() => {
 			$(`#${calendar.getAttribute('id')}`)
 				.stop()
 				.animate(
@@ -175,7 +207,50 @@ const touchMove = (e) => {
 };
 
 const touchEnd = (e) => {
-	if (scrollInterval) clearInterval(scrollInterval);
+	const state = touchState.getState();
+	if (!state.touchActive) return;
+	touchState.setState((prev) => {
+		return {
+			...prev,
+			touchActive: false,
+		};
+	});
+	if (xScrollInterval) clearInterval(xScrollInterval);
+	if (yScrollInterval) clearInterval(yScrollInterval);
+	const user = userState.getState();
+	const oldUser = userState.getState();
+	if (!user.name) return;
+
+	let rowStart = Number(state.cell1.getAttribute('data-row'));
+	let rowEnd = Number(state.cell2.getAttribute('data-row'));
+	if (rowStart > rowEnd) [rowStart, rowEnd] = [rowEnd, rowStart];
+	let colStart = Number(state.cell1.getAttribute('data-col'));
+	let colEnd = Number(state.cell2.getAttribute('data-col'));
+	if (colStart > colEnd) [colStart, colEnd] = [colEnd, colStart];
+
+	const selectedDates = [];
+	for (var i = rowStart; i <= rowEnd; i++) {
+		for (var j = colStart; j <= colEnd; j++) {
+			const dt = myCalendarArea
+				.querySelector(`.time-cell[data-row="${i}"][data-col="${j}"]`)
+				?.getAttribute('data-dt');
+			if (dt) selectedDates.push(dt);
+		}
+	}
+	//we are toggling off
+	if (user.availability.includes(state.cell1.getAttribute('data-dt'))) {
+		user.availability = user.availability.filter((a) => {
+			return !selectedDates.includes(a);
+		});
+	}
+	//we are toggling on
+	else {
+		selectedDates.forEach((sd) => {
+			if (!user.availability.includes(sd)) user.availability.push(sd);
+		});
+	}
+	userState.setState(user);
+
 	touchState.setState((prev) => {
 		return {
 			...prev,
@@ -184,6 +259,65 @@ const touchEnd = (e) => {
 			y: null,
 		};
 	});
+
+	//add API connection here
+	const es = eventState.getState();
+	const str = `/api/v1/events/updateAvailability/${es.url}`;
+	const handler = (res) => {
+		if (res.status !== 'success') {
+			console.log(res);
+			showMessage('error', res.message);
+			userState.setState(oldUser);
+		}
+	};
+	handleRequest(
+		str,
+		'PATCH',
+		{
+			availability: user.availability,
+		},
+		handler
+	);
+};
+
+const handleDrag = (e) => {
+	//if no touch active, remove the class from this cell
+	if (!e.detail.touchActive) {
+		e.target.classList.remove('toggle-on');
+		e.target.classList.remove('toggle-off');
+		return;
+	}
+
+	const c1 = e.detail.cell1;
+	const c2 = e.detail.cell2;
+	let rowStart = Number(c1.getAttribute('data-row'));
+	let rowEnd = Number(c2.getAttribute('data-row'));
+	if (rowStart > rowEnd) [rowStart, rowEnd] = [rowEnd, rowStart];
+	let colStart = Number(c1.getAttribute('data-col'));
+	let colEnd = Number(c2.getAttribute('data-col'));
+	if (colStart > colEnd) [colStart, colEnd] = [colEnd, colStart];
+
+	const row = Number(e.target.getAttribute('data-row'));
+	const col = Number(e.target.getAttribute('data-col'));
+
+	const user = userState.getState();
+
+	if (user.availability.includes(c1.getAttribute('data-dt'))) {
+		if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd)
+			e.target.classList.add('toggle-off');
+		else e.target.classList.remove('toggle-off');
+	} else {
+		if (row >= rowStart && row <= rowEnd && col >= colStart && col <= colEnd)
+			e.target.classList.add('toggle-on');
+		else e.target.classList.remove('toggle-on');
+	}
+};
+
+const handleHighlight = (e) => {
+	if (!e.detail.availability) return;
+	const dt = e.target.getAttribute('data-dt');
+	if (e.detail.availability.includes(dt)) e.target.classList.add('selected');
+	else e.target.classList.remove('selected');
 };
 
 const generateCalendar = (area, event) => {
@@ -217,7 +351,6 @@ const generateCalendar = (area, event) => {
 			});
 			timeWindows.push(timeWindow);
 		});
-		console.log(timeWindows);
 
 		//determine the start and end times of each column
 		let startTime, endTime;
@@ -248,7 +381,6 @@ const generateCalendar = (area, event) => {
 					endTime = endHr * 60 + endMin > endTime;
 			}
 		});
-		console.log(startTime, endTime);
 
 		const tbl = createElement('table');
 		area.appendChild(tbl);
@@ -336,27 +468,32 @@ const generateCalendar = (area, event) => {
 						const lbl = createElement('.time-label');
 						lbl.innerHTML = `${hr % 12 === 0 ? 12 : hr % 12} ${ampm}`;
 						sp.appendChild(lbl);
+					} else if (j === 0 && i % 60 === 45 && endTime - i <= 15) {
+						const lbl = createElement('.time-label.last');
+						lbl.innerHTML = `${(hr + 1) % 12 === 0 ? 12 : (hr + 1) % 12} ${
+							hr % 12 === 11 ? (ampm === 'AM' ? 'PM' : 'AM') : ampm
+						}`;
+						sp.appendChild(lbl);
 					}
-					// } else if (j === 0 && k % 60 === 45 && endTime - k <= 15) {
-					// 	const lbl = createElement('.time-label-last');
-					// 	lbl.innerHTML = `${(hr + 1) % 12 === 0 ? 12 : (hr + 1) % 12} ${
-					// 		hr % 12 === 11 ? (ampm === 'AM' ? 'PM' : 'AM') : ampm
-					// 	}`;
 					// 	// newBox.appendChild(lbl);
 					// }
 				} else {
-					const newBox = createElement('td.disabled');
+					const newBox = createElement('td.time-cell.disabled');
 					newBox.setAttribute('data-time', i);
 					newBox.setAttribute('data-date', col.getAttribute('data-date'));
 
 					const dt = `${col.getAttribute('data-date')}T${
 						hr < 10 ? '0' : ''
 					}${hr}:${min}:00.000`;
-					newBox.setAttribute('data-dt', dt);
 					newBox.setAttribute('data-col', j);
 					newBox.setAttribute('data-row', (i - startTime) / 15);
 					newRow.appendChild(newBox);
-
+					newBox.addEventListener('touchstart', touchStart);
+					newBox.addEventListener('mousedown', touchStart);
+					newBox.addEventListener('touchmove', touchMove);
+					newBox.addEventListener('mousemove', touchMove);
+					touchState.addWatcher(newBox, handleDrag);
+					userState.addWatcher(newBox, handleHighlight);
 					//this box's date time
 					const boxDT = moment
 						.tz(
@@ -392,29 +529,59 @@ const generateCalendar = (area, event) => {
 						})
 					) {
 						newBox.classList.remove('disabled');
+						newBox.setAttribute('data-dt', dt);
+						if (userState.getState().availability.includes(`${dt}`))
+							newBox.classList.add('selected');
 					}
 				}
 			});
 		}
-
-		//for each column, create the date boxes
 	}
 };
 
 const adjustTabSize = () => {
 	const totalHeight = document
 		.querySelector('.app-container')
-		.getBoundingClientRect().height;
-	const loginContainerHeight = document
-		.querySelector('#login-container')
-		.getBoundingClientRect().height;
-	const tabHeight = document
-		.querySelector('#tab-list')
-		.getBoundingClientRect().height;
-	const mh = totalHeight - loginContainerHeight - tabHeight;
-	console.log(totalHeight, loginContainerHeight, tabHeight, mh);
-	const tc = document.querySelector('.tab-content');
-	tc.setAttribute('style', `max-height:calc(${mh}px - 3rem);`);
+		.getBoundingClientRect().height; //742.4
+	const headerHeight = document
+		.querySelector('.header-section')
+		.getBoundingClientRect().height; //25.9
+	const mh = totalHeight - headerHeight;
+	const tc = document.querySelector('.body-section');
+	tc.setAttribute('style', `max-height:calc(${mh}px - 0.5rem);`);
+};
+
+const handleLogin = (e) => {
+	if (!login || e.target !== login) return;
+
+	const user = userName?.value;
+	const pw = password?.value;
+
+	if ((userName && !user) || (password && !pw))
+		return showMessage('error', 'Please provide a username and password.');
+
+	const eventId = eventState.getState().url;
+	if (!eventId) return showMessage('error', 'Something went wrong');
+
+	const handler = (res) => {
+		if (res.status === 'success') {
+			const user = res.event.users.find((u) => {
+				return u.id === res.user;
+			});
+			if (!user) return showMessage('error', 'User not found');
+			showMessage('info', `Logged in as ${user.name}`);
+			userState.setState(user);
+		}
+	};
+	handleRequest(
+		`/api/v1/events/login/${eventId}`,
+		'POST',
+		{
+			name: user,
+			password: pw,
+		},
+		handler
+	);
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -433,18 +600,33 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	adjustTabSize();
 	window.addEventListener('resize', adjustTabSize);
-	const userDataStr = document
-		.querySelector('#data-area')
-		?.getAttribute('data-user');
-	if (!userDataStr) userData = undefined;
-	else userData = JSON.parse(userDataStr);
+	const dataArea = document.querySelector('#data-area');
+	const userDataStr = dataArea?.getAttribute('data-user');
+	if (!userDataStr)
+		userState = new StateHandler({
+			id: null,
+			name: '',
+			availability: [],
+			timeZone: '',
+		});
+	else userState = new StateHandler(JSON.parse(userDataStr));
+	userState.addWatcher(null, (state) => {
+		if (!state.name) return;
+		loginContainer.innerHTML = '';
+		const cont = createElement('.d-flex.flex-row.w-100.my-2');
+		const sp1 = createElement('span.bold.me-2');
+		const sp2 = createElement('span');
+		sp1.innerHTML = 'Logged in as:';
+		sp2.innerHTML = state.name;
+		loginContainer.appendChild(cont);
+		cont.appendChild(sp1);
+		cont.appendChild(sp2);
+	});
+	const us = userState.getState();
 
-	const eventData = JSON.parse(
-		document.querySelector('#data-area')?.getAttribute('data-event')
-	);
-
-	const userTZ =
-		userData && userData.timeZone ? userData.timeZone : moment.tz.guess();
+	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
+	dataArea.remove();
+	const userTZ = us && us.timeZone ? us.timeZone : moment.tz.guess();
 	const allTimeZones = moment.tz.names();
 	allTimeZones.forEach((tz) => {
 		const op = createElement('option');
@@ -460,7 +642,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	if (eventData) {
-		console.log(eventData);
+		eventState = new StateHandler(eventData);
 		generateCalendar(myCalendarArea, eventData);
 	}
 
@@ -468,15 +650,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		generateCalendar(myCalendarArea, eventData);
 	});
 
-	myCalendarArea.addEventListener('touchstart', touchStart);
-	myCalendarArea.addEventListener('mousedown', touchStart);
-	myCalendarArea.addEventListener('touchmove', touchMove);
-	myCalendarArea.addEventListener('mousemove', touchMove);
-	myCalendarArea.addEventListener('touchend', touchEnd);
+	document.addEventListener('touchend', touchEnd);
 	document.addEventListener('mouseup', (e) => {
 		if (touchState.getState().isMobile) return;
-		touchState.setState((prev) => {
-			return { ...prev, touchActive: false };
-		});
+		touchEnd(e);
 	});
+
+	if (login) login.addEventListener('click', handleLogin);
 });

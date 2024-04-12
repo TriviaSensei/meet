@@ -86,6 +86,7 @@ const createAndSendToken = (event, user, statusCode, req, res) => {
 
 	res.status(statusCode).json({
 		status: 'success',
+		user,
 		token,
 		event,
 	});
@@ -151,10 +152,11 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 			return next();
 		}
 
-		const { name, timeZone, availability } = currentUser;
+		const { name, id, timeZone, availability } = currentUser;
 		//we've passed the gauntlet. There is a logged in user.
 		res.locals.user = {
 			name,
+			id,
 			timeZone,
 			availability,
 			url: decoded.url,
@@ -223,17 +225,6 @@ exports.updateAvailability = catchAsync(async (req, res, next) => {
 
 	if (!event || event.url !== res.locals.user.url)
 		return next(new AppError('Invalid event', 404));
-
-	let datesValid = true;
-	req.body.availability = req.body.availability.map((a) => {
-		const d = Date.parse(a);
-		if (!d) {
-			datesValid = false;
-			return null;
-		} else return new Date(Date.parse(a));
-	});
-	if (!datesValid)
-		return next(new AppError('Invalid date value given for availability', 400));
 
 	event.users.some((u) => {
 		if (u.id === res.locals.user.id) {

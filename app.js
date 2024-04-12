@@ -4,7 +4,7 @@ const cookieParser = require('cookie-parser');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 const morgan = require('morgan');
-
+const AppError = require('./utils/appError');
 const viewRouter = require('./mvc/routes/viewRoutes');
 const eventRouter = require('./mvc/routes/eventRoutes');
 const errorHandler = require('./mvc/controllers/errorController');
@@ -35,9 +35,12 @@ const getLimiter = rateLimit({
 	message: 'Too many requests from this IP - please try again later.',
 });
 const editLimiter = rateLimit({
-	max: 3600,
-	windowMs: 60 * 60 * 1000,
-	message: 'Too many requests from this IP - please try again later.',
+	max: 5,
+	windowMs: 1000,
+	message: {
+		status: 'fail',
+		message: 'You are editing too much. Please try again in a few seconds.',
+	},
 });
 const eventLimiter = rateLimit({
 	max: 50,
@@ -48,7 +51,7 @@ const eventLimiter = rateLimit({
 app.use('/', viewLimiter);
 app.use('/api/v1/events/createEvent', eventLimiter);
 app.use('/api/v1/events/getEvent', getLimiter);
-app.use('/api/v1/events/editEvent', editLimiter);
+app.use('/api/v1/events/updateAvailability/:id', editLimiter);
 
 //body parser, read data from body to req.body
 app.use(express.json());
