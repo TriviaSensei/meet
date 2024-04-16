@@ -27,25 +27,28 @@ app.use(express.static(path.join(__dirname, 'public')));
 const viewLimiter = rateLimit({
 	max: 3600,
 	windowMs: 60 * 60 * 1000,
-	message: 'Too many requests from this IP - please try again later.',
+	message: 'You are making too many requests - please try again later.',
 });
 const getLimiter = rateLimit({
 	max: 3600,
 	windowMs: 60 * 60 * 1000,
-	message: 'Too many requests from this IP - please try again later.',
+	message: 'You are making too many requests - please try again later.',
 });
 const editLimiter = rateLimit({
 	max: 5,
 	windowMs: 1000,
 	message: {
 		status: 'fail',
-		message: 'You are editing too much. Please try again in a few seconds.',
+		message: 'You are doing that too much. Please try again in a few seconds.',
 	},
 });
 const eventLimiter = rateLimit({
 	max: 50,
 	windowMs: 60 * 60 * 1000,
-	message: 'You are trying to create too many events - please try again later.',
+	message: {
+		status: 'fail',
+		message: 'You are creating too many events. Try again later.',
+	},
 });
 
 app.use('/', viewLimiter);

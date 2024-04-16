@@ -241,11 +241,15 @@ const touchEnd = (e) => {
 			const dt = myCalendarArea
 				.querySelector(`.time-cell[data-row="${i}"][data-col="${j}"]`)
 				?.getAttribute('data-dt');
-			if (dt) selectedDates.push(dt);
+			if (dt) selectedDates.push(toGMT(dt, user.timeZone));
 		}
 	}
 	//we are toggling off
-	if (user.availability.includes(state.cell1.getAttribute('data-dt'))) {
+	if (
+		user.availability.includes(
+			toGMT(state.cell1.getAttribute('data-dt'), user.timeZone)
+		)
+	) {
 		user.availability = user.availability.filter((a) => {
 			return !selectedDates.includes(a);
 		});
@@ -310,7 +314,7 @@ const handleDrag = (e) => {
 
 	if (
 		user.availability.includes(
-			moment.tz(c1.getAttribute('data-dt'), user.timeZone).format()
+			toGMT(c1.getAttribute('data-dt'), user.timeZone) + 'Z'
 		)
 	) {
 		for (var i = rowStart; i <= rowEnd; i++) {
@@ -334,25 +338,28 @@ const handleDrag = (e) => {
 };
 
 const handleHighlight = (e) => {
+	console.log(e.detail);
+
 	if (!e.detail.availability) return;
 
 	const boxes = getElementArray(e.target, 'td.selected');
 	boxes.forEach((b) => {
-		if (!e.detail.availability.includes(b.getAttribute('data-dt')))
-			b.classList.remove('selected');
+		b.classList.remove('selected');
 	});
 	e.detail.availability.forEach((d) => {
-		const box = e.target.querySelector(`td[data-dt="${d}"]`);
+		const arr = d.split('Z');
+		const str = arr[0] + '.000Z';
+		const box = e.target.querySelector(`td[data-dt="${str}"]`);
 		if (box) box.classList.add('selected');
 	});
 };
 
 const generateCalendar = (area, event) => {
-	const startTime = new Date();
 	area.innerHTML = '';
 	const userTZ = tzSelect.value;
-	const user = userState.getState();
 	const localOffset = new Date().getTimezoneOffset();
+	const user = userState.getState();
+
 	if (event.eventType === 'date-time') {
 		//sort the event dates
 		const ed = event.dates.sort((a, b) => {
@@ -361,7 +368,7 @@ const generateCalendar = (area, event) => {
 
 		//create the date columns for each date...
 		const timeWindows = [];
-		ed.forEach((d) => {
+		ed.forEach((d, i) => {
 			//calculate the time window
 			const timeWindow = event.times.map((t, j) => {
 				const m = moment
@@ -400,14 +407,13 @@ const generateCalendar = (area, event) => {
 				const endHr = Number(tb.split(':')[0]);
 				const endMin = Number(tb.split(':')[1]);
 
-				//find the earliest  start time and latest end time
-				//it will usually be the same for the entire window, but
-				//DST can mess with this, so we need this logic.
 				if (!startTime) startTime = startHr * 60 + startMin;
-				else startTime = Math.min(startHr * 60 + startMin, startTime);
+				else if (startHr * 60 + startMin < startTime)
+					startTime = startHr * 60 + startMin;
 
 				if (!endTime) endTime = endHr * 60 + endMin;
-				else endTime = Math.max(endTime, endHr * 60 + endMin > endTime);
+				else if (endHr * 60 + endMin > endTime)
+					endTime = endHr * 60 + endMin > endTime;
 			}
 		});
 
@@ -430,8 +436,9 @@ const generateCalendar = (area, event) => {
 				if (!existingHeader) {
 					const th = createElement('td');
 					const d = new Date(
-						Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) +
-							localOffset * 60000
+						Date.parse(new Date(dateStr)) +
+							localOffset * 60 * 1000 +
+							(j === 1 && event.times[1] === 1440 ? -1 : 0)
 					);
 					const dow = dows[d.getDay()];
 					const mon = months[d.getMonth()];
@@ -446,14 +453,11 @@ const generateCalendar = (area, event) => {
 					wd.innerHTML = dow;
 					dateDiv.innerHTML = `${mon} ${date}`;
 					th.setAttribute('data-date', dateStr);
-					th.setAttribute('data-column', j);
 					//do we need a spacer?
 					if (i !== 0) {
 						//date string for day before this one
 						const lastDate = new Date(
-							Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) -
-								86400000 +
-								localOffset * 60000
+							Date.parse(dateStr) + localOffset * 60000 - 1000 * 60 * 60 * 24
 						);
 						const lastDateStr = `${lastDate.getFullYear()}-${
 							lastDate.getMonth() + 1 < 10
@@ -484,7 +488,7 @@ const generateCalendar = (area, event) => {
 			const ampm = i >= 720 ? 'PM' : 'AM';
 
 			const newRow = createElement('tr');
-			newRow.setAttribute('data-time', `${hr}:${min}`);
+			newRow.setAttribute('data-time', i);
 			newRow.setAttribute('data-row', (i - startTime) / 15);
 			tbl.appendChild(newRow);
 			//look at the column headers
@@ -511,24 +515,19 @@ const generateCalendar = (area, event) => {
 					// }
 				} else {
 					const newBox = createElement('td.time-cell.disabled');
-					newBox.setAttribute('data-time', `${hr}:${min}`);
+					newBox.setAttribute('data-time', i);
 					newBox.setAttribute('data-date', col.getAttribute('data-date'));
-					const dtStr = `${col.getAttribute('data-date')} ${
+
+					const dt = `${col.getAttribute('data-date')}T${
 						hr < 10 ? '0' : ''
-					}${hr}:${min}`;
-					newBox.setAttribute(
-						'data-dt',
-						moment.tz(dtStr, user.timeZone || event.timeZone).format()
-					);
+					}${hr}:${min}:00.000Z`;
 					newBox.setAttribute('data-col', j);
 					newBox.setAttribute('data-row', (i - startTime) / 15);
 					newRow.appendChild(newBox);
-					if (area === myCalendarArea) {
-						newBox.addEventListener('touchstart', touchStart);
-						newBox.addEventListener('mousedown', touchStart);
-						newBox.addEventListener('touchmove', touchMove);
-						newBox.addEventListener('mousemove', touchMove);
-					}
+					newBox.addEventListener('touchstart', touchStart);
+					newBox.addEventListener('mousedown', touchStart);
+					newBox.addEventListener('touchmove', touchMove);
+					newBox.addEventListener('mousemove', touchMove);
 					//this box's date time
 					const boxDT = moment
 						.tz(
@@ -564,34 +563,29 @@ const generateCalendar = (area, event) => {
 						})
 					) {
 						newBox.classList.remove('disabled');
+						newBox.setAttribute('data-dt', dt);
 					}
 				}
 			});
 		}
 	}
-	const b = new Date();
-	console.log(`Calendar generated in ${b - startTime} ms`);
-
-	if (area === myCalendarArea)
-		handleHighlight({
-			detail: user,
-			target: area,
-		});
-	// console.trace();
-
-	// const availability = user.availability.map((d) => {
-	// 	return toUserTZ(d, user.timeZone);
-	// });
-	// availability.forEach((d) => {
-	// 	const arr = d.split('-');
-	// 	arr.pop();
-	// 	const str = arr.join('-') + '.000Z';
-	// 	const box = area.querySelector(`td[data-dt="${str}"]`);
-	// 	if (box) box.classList.add('selected');
-	// 	// if (availability.includes(`${toUserTZ(dt, user.timeZone)}`)) {
-	// 	// 	newBox.classList.add('selected');
-	// 	// }
-	// });
+	try {
+		touchState.addWatcher(area, handleDrag);
+		userState.addWatcher(area, handleHighlight);
+	} catch (e) {}
+	const availability = user.availability.map((d) => {
+		return toUserTZ(d, user.timeZone);
+	});
+	availability.forEach((d) => {
+		const arr = d.split('-');
+		arr.pop();
+		const str = arr.join('-') + '.000Z';
+		const box = area.querySelector(`td[data-dt="${str}"]`);
+		if (box) box.classList.add('selected');
+		// if (availability.includes(`${toUserTZ(dt, user.timeZone)}`)) {
+		// 	newBox.classList.add('selected');
+		// }
+	});
 };
 
 const adjustTabSize = () => {
@@ -641,51 +635,20 @@ const handleLogin = (e) => {
 };
 
 const clearAvailability = (e) => {
-	const state = eventState.getState();
-	const us = userState.getState();
+	const state = userState.getState();
+	userState.setState((prev) => {
+		return {
+			...prev,
+			availability: [],
+		};
+	});
 	handleRequest(
 		`/api/v1/events/updateAvailability/${state.url}`,
 		'PATCH',
 		{ availability: [] },
 		(res) => {
-			if (res.status === 'success') {
-				userState.setState((prev) => {
-					return {
-						...prev,
-						availability: [],
-					};
-				});
-				showMessage('info', 'Availability cleared');
-			} else {
-				showMessage('error', res.message);
-				userState.setState(us);
-			}
+			showMessage('info', 'Availability cleared');
 		}
-	);
-};
-
-const changeTimeZone = (e) => {
-	const user = userState.getState();
-	const event = eventState.getState();
-	const handler = (res) => {
-		if (res.status === 'success') {
-			userState.setState(res.user);
-			generateCalendar(myCalendarArea, res.event);
-			generateCalendar(teamCalendarArea, res.event);
-		} else {
-			showMessage('error', res.message);
-			const opts = getElementArray(e.target, 'option');
-			opts.some((o, i) => {
-				if (o.value === user.timeZone) e.target.selectedIndex = i;
-				return true;
-			});
-		}
-	};
-	handleRequest(
-		`/api/v1/events/updateTimeZone/${event.url}`,
-		'PATCH',
-		{ timeZone: e.target.value },
-		handler
 	);
 };
 
@@ -730,13 +693,6 @@ document.addEventListener('DOMContentLoaded', () => {
 		cont.appendChild(sp1);
 		cont.appendChild(sp2);
 		cont.appendChild(btn);
-
-		getElementArray(tzSelect, 'option').some((o, i) => {
-			if (o.value === state.timeZone) {
-				tzSelect.selectedIndex = i;
-				return true;
-			}
-		});
 	});
 	const us = userState.getState();
 
@@ -760,12 +716,11 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (eventData) {
 		eventState = new StateHandler(eventData);
 		generateCalendar(myCalendarArea, eventData);
-		generateCalendar(teamCalendarArea, eventData);
 	}
 
-	tzSelect.addEventListener('change', changeTimeZone);
-	touchState.addWatcher(myCalendarArea, handleDrag);
-	userState.addWatcher(myCalendarArea, handleHighlight);
+	tzSelect.addEventListener('change', () => {
+		generateCalendar(myCalendarArea, eventData);
+	});
 
 	document.addEventListener('touchend', touchEnd);
 	document.addEventListener('mouseup', (e) => {

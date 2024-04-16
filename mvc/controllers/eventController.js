@@ -13,6 +13,8 @@ const deletionPeriod = 1000 * 60 * 60 * 24 * 7;
 const msInDay = 1000 * 60 * 60 * 24;
 const max32 = 2147483647;
 
+const allTimeZones = moment.tz.names();
+
 const autoDeleteEvent = (url) => {
 	return async () => {
 		await Event.deleteOne({ url });
@@ -226,20 +228,69 @@ exports.updateAvailability = catchAsync(async (req, res, next) => {
 	if (!event || event.url !== res.locals.user.url)
 		return next(new AppError('Invalid event', 404));
 
-	event.users.some((u) => {
+	if (event.eventType === 'date-time') {
+		if (
+			req.body.availability.some((d) => {
+				return !Date.parse(d);
+			})
+		)
+			return next(new AppError('Invalid date/time specified', 400));
+	}
+
+	const user = event.users.find((u) => {
 		if (u.id === res.locals.user.id) {
 			u.availability = req.body.availability;
 			return true;
 		}
 		return false;
 	});
+
 	event.markModified('users');
 	await event.save();
 
 	res.status(200).json({
 		status: 'success',
 		data: event,
+		user: {
+			...user,
+			password: '',
+		},
 	});
+});
+
+exports.updateTimeZone = catchAsync(async (req, res, next) => {
+	if (!res.locals.user)
+		return next(new AppError('You must be logged in.', 403));
+
+	const event = await Event.findOne({ url: req.params.id });
+
+	if (!event || event.url !== res.locals.user.url)
+		return next(new AppError('Invalid event', 404));
+
+	if (event.type === 'weekday' || event.type === 'date')
+		return next(new AppError('This event does not use time zones', 400));
+
+	if (!allTimeZones.includes(req.body.timeZone))
+		return next(new AppError('Invalid time zone specified', 400));
+
+	const user = event.users.find((u) => {
+		if (u.id === res.locals.user.id) {
+			u.availability = u.availability.map((d) => {
+				return moment.tz(d, u.timeZone).tz(req.body.timeZone).format();
+			});
+			u.timeZone = req.body.timeZone;
+			return true;
+		}
+	});
+	if (user) {
+		event.markModified('users');
+		await event.save();
+		return res.status(200).json({
+			status: 'success',
+			user: { ...user, password: '' },
+			event,
+		});
+	}
 });
 
 exports.updateEvent = catchAsync(async (req, res, next) => {
@@ -277,7 +328,6 @@ exports.updateEvent = catchAsync(async (req, res, next) => {
 });
 
 exports.createEvent = catchAsync(async (req, res, next) => {
-	console.log(req.body);
 	if (!req.body.userName || !req.body.password)
 		return next(
 			new AppError('You must specify an initial user and password', 400)

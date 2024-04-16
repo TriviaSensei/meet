@@ -19,4 +19,10 @@ router.patch(
 	eventController.isLoggedIn,
 	eventController.updateAvailability
 );
+
+router.patch(
+	'/updateTimeZone/:id',
+	eventController.isLoggedIn,
+	eventController.updateTimeZone
+);
 module.exports = router;

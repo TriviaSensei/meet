@@ -28,6 +28,23 @@
 	overflow: auto;
 }
 
+#filter-area {
+	width: 100%;
+}
+
+.accordion-button {
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
+}
+.accordion-body {
+	padding-top: 0.3rem;
+	padding-bottom: 0.3rem;
+}
+
+#person-count {
+	width: 2rem;
+}
+
 .calendar-container {
 	flex: 1;
 	display: flex;
@@ -68,8 +85,8 @@
 				border-left: 1px solid var(--text-color);
 				border-bottom: 2px solid var(--text-color);
 			}
-			td.spacer {
-				opacity: 0;
+			td.spacer:not(:first-child) {
+				background-color: var(--gray);
 			}
 		}
 		tr {
@@ -120,6 +137,9 @@
 			.last {
 				top: 65%;
 			}
+		}
+		td.spacer:not(:first-child) {
+			background-color: var(--gray);
 		}
 		td.spacer:first-child {
 			width: 30px;
