@@ -7,6 +7,12 @@
 	flex: 1;
 }
 
+.event-url {
+	padding: 0.25rem 0.5rem;
+	border: 1px solid var(--text-color);
+	margin: 0;
+}
+
 .nav-link:not(.active) {
 	border: 1px solid black;
 	color: var(--text-color);
@@ -41,8 +47,17 @@
 	padding-bottom: 0.3rem;
 }
 
+.accordion-item {
+	background-color: var(--bg-color);
+	border: 1px solid var(--text-color);
+}
+
 #person-count {
 	width: 2rem;
+}
+
+#legend-bar {
+	border: 1px solid var(--text-color);
 }
 
 .calendar-container {

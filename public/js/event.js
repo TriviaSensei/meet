@@ -11,6 +11,7 @@ const password = document.querySelector('#password');
 const tzSelect = document.querySelector('#timezone');
 const myCalendarArea = document.querySelector('#my-calendar');
 const teamCalendarArea = document.querySelector('#team-calendar');
+const legendBar = document.querySelector('#legend-bar');
 
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -35,6 +36,34 @@ const months = [
 	'Dec',
 ];
 
+const colors = [
+	'DDDDDD',
+	'D4D7DD',
+	'CCD0DD',
+	'C3CADE',
+	'BAC3DE',
+	'B2BDDE',
+	'A9B6DE',
+	'A0B0DE',
+	'98A9DE',
+	'8FA3DF',
+	'869CDF',
+	'7E96DF',
+	'758FDF',
+	'6C89DF',
+	'6482DF',
+	'5B7CE0',
+	'5275E0',
+	'4A6FE0',
+	'4168E0',
+	'3862E0',
+	'305BE0',
+	'2755E1',
+	'1E4EE1',
+	'1648E1',
+	'0D41E1',
+];
+
 const testTimeZones = [
 	'Europe/Lisbon',
 	'America/New_York',
@@ -52,13 +81,6 @@ let touchState = new StateHandler({
 });
 
 let eventState, userState;
-
-const toGMT = (dt, zone) => {
-	return moment.tz(dt, zone).tz('GMT').format();
-};
-const toUserTZ = (dt, zone) => {
-	return moment.tz(dt, 'GMT').tz(zone).format();
-};
 
 const touchStart = (e) => {
 	const state = touchState.getState();
@@ -569,29 +591,12 @@ const generateCalendar = (area, event) => {
 			});
 		}
 	}
-	const b = new Date();
-	console.log(`Calendar generated in ${b - startTime} ms`);
 
 	if (area === myCalendarArea)
 		handleHighlight({
 			detail: user,
 			target: area,
 		});
-	// console.trace();
-
-	// const availability = user.availability.map((d) => {
-	// 	return toUserTZ(d, user.timeZone);
-	// });
-	// availability.forEach((d) => {
-	// 	const arr = d.split('-');
-	// 	arr.pop();
-	// 	const str = arr.join('-') + '.000Z';
-	// 	const box = area.querySelector(`td[data-dt="${str}"]`);
-	// 	if (box) box.classList.add('selected');
-	// 	// if (availability.includes(`${toUserTZ(dt, user.timeZone)}`)) {
-	// 	// 	newBox.classList.add('selected');
-	// 	// }
-	// });
 };
 
 const adjustTabSize = () => {
@@ -604,6 +609,7 @@ const adjustTabSize = () => {
 	const mh = totalHeight - headerHeight;
 	const tc = document.querySelector('.body-section');
 	tc.setAttribute('style', `max-height:calc(${mh}px - 0.5rem);`);
+	setCalendarSize();
 };
 
 const handleLogin = (e) => {
@@ -689,6 +695,80 @@ const changeTimeZone = (e) => {
 	);
 };
 
+let colorMap = [];
+const drawLegend = (e) => {
+	const labels = getElementArray(document, '.legend-label');
+	// const userCount = 30;
+	const userCount = e.detail.users.length;
+	const boxCount = Math.min(colors.length, userCount + 1);
+
+	labels[0].innerHTML = `0/${userCount}`;
+	labels[1].innerHTML = `${userCount}/${userCount} available`;
+
+	legendBar.innerHTML = '';
+	const interval = Math.max(1, (colors.length - 1) / (boxCount - 1));
+
+	for (var i = 0; i < boxCount; i++) {
+		const newBox = createElement('.f-1');
+		const x = Math.round(i * interval);
+		newBox.setAttribute('style', `background-color:#${colors[x]}`);
+
+		legendBar.appendChild(newBox);
+
+		colorMap.push({
+			count: (i / (boxCount - 1)) * userCount,
+			color: colors[x],
+		});
+	}
+};
+
+const setCalendarSize = () => {
+	const container = document.querySelector('#team-calendar-pane');
+	if (!container) return;
+
+	const wrapper = container.querySelector('.tab-wrapper');
+	if (!wrapper) return;
+
+	const mh = container.getBoundingClientRect().height;
+
+	let usedHeight = 0;
+
+	Array.from(wrapper.children, (x) => x).forEach((c) => {
+		if (c === teamCalendarArea) return;
+		const rect = c.getBoundingClientRect();
+		if (rect) usedHeight = usedHeight + rect.height;
+	});
+	teamCalendarArea.setAttribute(
+		'style',
+		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
+	);
+
+	teamCalendarArea.setAttribute(
+		'style',
+		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
+	);
+};
+
+const populateTeamCalendar = (event) => {
+	const obj = {};
+	event.users.forEach((u) => {
+		u.availability.forEach((a) => {
+			if (!obj[a]) obj[a] = 1;
+			else obj[a] = obj[a] + 1;
+		});
+	});
+	Object.getOwnPropertyNames(obj).forEach((s) => {
+		const cell = teamCalendarArea.querySelector(`[data-dt="${s}"]`);
+		if (!cell) return;
+
+		const color = colorMap.find((c) => {
+			return c.count >= obj[s];
+		});
+		if (!color) return;
+		cell.setAttribute('style', `background-color:#${color.color}`);
+	});
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 	document.body.addEventListener(
 		'touchstart',
@@ -766,12 +846,19 @@ document.addEventListener('DOMContentLoaded', () => {
 	tzSelect.addEventListener('change', changeTimeZone);
 	touchState.addWatcher(myCalendarArea, handleDrag);
 	userState.addWatcher(myCalendarArea, handleHighlight);
+	eventState.addWatcher(legendBar, drawLegend);
+
+	if (eventData) populateTeamCalendar(eventData);
 
 	document.addEventListener('touchend', touchEnd);
 	document.addEventListener('mouseup', (e) => {
 		if (touchState.getState().isMobile) return;
 		touchEnd(e);
 	});
+
+	document.addEventListener('shown.bs.collapse', setCalendarSize);
+	document.addEventListener('hidden.bs.collapse', setCalendarSize);
+	document.addEventListener('shown.bs.tab', setCalendarSize);
 
 	if (login) login.addEventListener('click', handleLogin);
 });
