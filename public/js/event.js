@@ -12,6 +12,9 @@ const tzSelect = document.querySelector('#timezone');
 const myCalendarArea = document.querySelector('#my-calendar');
 const teamCalendarArea = document.querySelector('#team-calendar');
 const legendBar = document.querySelector('#legend-bar');
+const copyButton = document.querySelector('#copy-url');
+const userFilterList = document.querySelector('#user-filter-list');
+const personCount = document.querySelector('#person-count');
 
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -296,6 +299,8 @@ const touchEnd = (e) => {
 		if (res.status !== 'success') {
 			showMessage('error', res.message);
 			userState.setState(oldUser);
+		} else {
+			eventState.setState(res.data);
 		}
 	};
 	handleRequest(
@@ -617,11 +622,11 @@ const handleLogin = (e) => {
 
 	const user = userName?.value;
 	const pw = password?.value;
+	const eventId = location.href.split('/').pop();
 
 	if ((userName && !user) || (password && !pw))
 		return showMessage('error', 'Please provide a username and password.');
 
-	const eventId = eventState.getState().url;
 	if (!eventId) return showMessage('error', 'Something went wrong');
 
 	const handler = (res) => {
@@ -632,6 +637,23 @@ const handleLogin = (e) => {
 			if (!user) return showMessage('error', 'User not found');
 			showMessage('info', `Logged in as ${user.name}`);
 			userState.setState(user);
+			const checkRow = userFilterList.querySelector(`person-${user.id}`);
+			if (!checkRow) {
+				const newRow = createElement('.d-flex.flex-row');
+				const chk = createElement('input.me-2');
+				chk.setAttribute('id', `person-${user.id}`);
+				chk.setAttribute('type', 'checkbox');
+				chk.setAttribute('value', user.name);
+				chk.setAttribute('name', 'user-filter');
+				newRow.appendChild(chk);
+				const lbl = createElement('label');
+				lbl.setAttribute('for', `person-${user.id}`);
+				lbl.innerHTML = user.name;
+				newRow.appendChild(lbl);
+				userFilterList.appendChild(newRow);
+				chk.addEventListener('change', applyFilters);
+				eventState.setState(res.event);
+			}
 		}
 	};
 
@@ -641,6 +663,7 @@ const handleLogin = (e) => {
 		{
 			name: user,
 			password: pw,
+			timeZone: tzSelect.value,
 		},
 		handler
 	);
@@ -678,6 +701,7 @@ const changeTimeZone = (e) => {
 			userState.setState(res.user);
 			generateCalendar(myCalendarArea, res.event);
 			generateCalendar(teamCalendarArea, res.event);
+			populateTeamCalendar(event);
 		} else {
 			showMessage('error', res.message);
 			const opts = getElementArray(e.target, 'option');
@@ -697,8 +721,8 @@ const changeTimeZone = (e) => {
 
 let colorMap = [];
 const drawLegend = (e) => {
+	colorMap = [];
 	const labels = getElementArray(document, '.legend-label');
-	// const userCount = 30;
 	const userCount = e.detail.users.length;
 	const boxCount = Math.min(colors.length, userCount + 1);
 
@@ -749,24 +773,142 @@ const setCalendarSize = () => {
 	);
 };
 
+const addTooltip = (cell) => {
+	if (!cell) return;
+	cell.setAttribute('data-bs-toggle', 'tooltip');
+	cell.setAttribute('data-bs-html', 'true');
+	const timeStr = cell.getAttribute('data-time');
+	const hr = Number(timeStr.split(':')[0]);
+	const min = timeStr.split(':')[1];
+	const ampm = hr < 12 ? 'AM' : 'PM';
+
+	cell.setAttribute(
+		'data-bs-title',
+		`${cell.getAttribute('data-date')}<br>${
+			hr % 12 === 0 ? 12 : hr % 12
+		}:${min} ${ampm}<br><u>${cell.getAttribute(
+			'data-count'
+		)} available</u><br>${cell
+			.getAttribute('data-users')
+			.split(',')
+			.join('<br>')}`
+	);
+	cell.setAttribute('tabindex', 0);
+	new bootstrap.Tooltip(cell);
+};
+
+const removeTooltip = (cell) => {
+	if (!cell) return;
+	cell.removeAttribute('data-bs-toggle');
+	cell.removeAttribute('data-bs-html');
+	cell.removeAttribute('data-bs-title');
+	cell.removeAttribute('tabindex');
+};
+
+const applyFilters = () => {
+	const minVal = Number(personCount.value);
+	const checkedUsers = getElementArray(
+		document,
+		'input[type="checkbox"][name="user-filter"]:checked'
+	).map((c) => {
+		return c.getAttribute('value');
+	});
+	let anyAll = document
+		.querySelector('input[type="radio"][name="user-filter-radio"]:checked')
+		?.getAttribute('value');
+	if (!anyAll) {
+		anyAll = 'all';
+		const allRadio = document.querySelector('#user-filter-all');
+		if (allRadio) allRadio.checked = true;
+	}
+
+	//color cells with enough users
+	getElementArray(teamCalendarArea, 'td[data-count]').forEach((c) => {
+		if (Number(c.getAttribute('data-count') < minVal)) {
+			c.removeAttribute('style');
+			removeTooltip(c);
+		} else {
+			colorCell(c);
+			addTooltip(c);
+		}
+	});
+
+	//remove any without the right users, if necessary
+	if (anyAll === 'all') {
+		getElementArray(teamCalendarArea, 'td[data-users]').forEach((c) => {
+			const availableUsers = c.getAttribute('data-users').split(',');
+			if (
+				checkedUsers.some((u) => {
+					return !availableUsers.includes(u);
+				})
+			) {
+				c.removeAttribute('style');
+				removeTooltip(c);
+			}
+		});
+	} else {
+		getElementArray(teamCalendarArea, 'td[data-users]').forEach((c) => {
+			const availableUsers = c.getAttribute('data-users').split(',');
+			if (
+				checkedUsers.every((u) => {
+					return !availableUsers.includes(u);
+				})
+			) {
+				c.removeAttribute('style');
+				removeTooltip(c);
+			}
+		});
+	}
+};
+
+const colorCell = (cell) => {
+	const count = Number(cell.getAttribute('data-count'));
+	if (isNaN(count)) return cell.removeAttribute('style');
+
+	const color = colorMap.find((c) => {
+		return c.count >= count;
+	});
+	if (!color) return;
+	cell.setAttribute('style', `background-color:#${color.color}`);
+};
 const populateTeamCalendar = (event) => {
 	const obj = {};
-	event.users.forEach((u) => {
-		u.availability.forEach((a) => {
-			if (!obj[a]) obj[a] = 1;
-			else obj[a] = obj[a] + 1;
-		});
-	});
-	Object.getOwnPropertyNames(obj).forEach((s) => {
-		const cell = teamCalendarArea.querySelector(`[data-dt="${s}"]`);
-		if (!cell) return;
+	const user = userState.getState();
 
-		const color = colorMap.find((c) => {
-			return c.count >= obj[s];
+	if (event.eventType === 'date-time') {
+		event.users.forEach((u) => {
+			u.availability.forEach((a) => {
+				const str = moment
+					.tz(a, u.timeZone)
+					.tz(user.timeZone || tzSelect.value)
+					.format();
+				if (!obj[str]) obj[str] = [u.name];
+				else obj[str] = [...obj[str], u.name];
+			});
 		});
-		if (!color) return;
-		cell.setAttribute('style', `background-color:#${color.color}`);
-	});
+		const cells = getElementArray(teamCalendarArea, '[data-count]');
+		//find any cells with a data-count
+		cells.forEach((c) => {
+			//get the datetime string for each cell
+			const dt = c.getAttribute('data-dt');
+			//if there is no availability on that datetime, remove the data-count and style attributes from the cell (uncolor it)
+			if (!obj[dt]) {
+				c.removeAttribute('data-count');
+				c.removeAttribute('style');
+			}
+		});
+
+		//for each date time that we DO have availability...
+		Object.getOwnPropertyNames(obj).forEach((s) => {
+			//find the corresponding cell
+			const cell = teamCalendarArea.querySelector(`[data-dt="${s}"]`);
+			if (!cell) return;
+			cell.setAttribute('data-count', obj[s].length);
+			cell.setAttribute('data-users', obj[s]);
+			colorCell(cell);
+			addTooltip(cell);
+		});
+	}
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -847,7 +989,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	touchState.addWatcher(myCalendarArea, handleDrag);
 	userState.addWatcher(myCalendarArea, handleHighlight);
 	eventState.addWatcher(legendBar, drawLegend);
-
+	eventState.addWatcher(null, (state) => {
+		if (state) populateTeamCalendar(state);
+	});
 	if (eventData) populateTeamCalendar(eventData);
 
 	document.addEventListener('touchend', touchEnd);
@@ -859,6 +1003,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	document.addEventListener('shown.bs.collapse', setCalendarSize);
 	document.addEventListener('hidden.bs.collapse', setCalendarSize);
 	document.addEventListener('shown.bs.tab', setCalendarSize);
+
+	copyButton.addEventListener('click', () => {
+		navigator.clipboard.writeText(location.href);
+		showMessage('info', 'Copied URL to clipboard');
+	});
+
+	getElementArray(userFilterList, 'input[type="checkbox"]').forEach((c) => {
+		console.log(c);
+		c.addEventListener('change', applyFilters);
+	});
+	getElementArray(document, '[name="user-filter-radio"]').forEach((r) => {
+		r.addEventListener('change', applyFilters);
+	});
+	personCount.addEventListener('change', applyFilters);
 
 	if (login) login.addEventListener('click', handleLogin);
 });

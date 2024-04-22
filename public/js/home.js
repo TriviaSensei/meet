@@ -183,7 +183,6 @@ const renderCalendar = (state) => {
 
 const setNewMonth = (e) => {
 	const state = sh.getState();
-	console.log(e.target);
 	switch (e.target) {
 		case yearBack:
 			state.year = state.year - 1;

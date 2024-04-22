@@ -15,9 +15,9 @@ const max32 = 2147483647;
 
 const allTimeZones = moment.tz.names();
 
-const autoDeleteEvent = (url) => {
+const autoDeleteEvent = (id) => {
 	return async () => {
-		await Event.deleteOne({ url });
+		await Event.findOneAndDelete({ _id: id });
 	};
 };
 
@@ -54,7 +54,7 @@ const scheduleDeletes = async () => {
 		);
 
 		if (timeUntilDelete <= max32)
-			setTimeout(autoDeleteEvent(ev.url), timeUntilDelete);
+			setTimeout(autoDeleteEvent(ev._id), timeUntilDelete);
 	});
 };
 scheduleDeletes();
@@ -86,6 +86,7 @@ const createAndSendToken = (event, user, statusCode, req, res) => {
 			};
 		});
 
+	console.log(event);
 	res.status(statusCode).json({
 		status: 'success',
 		user,
@@ -175,6 +176,9 @@ exports.login = catchAsync(async (req, res, next) => {
 	if (!name || !password)
 		return next(new AppError('Please provide username and password.', 400));
 
+	if (name.indexOf(',') >= 0)
+		return next(new AppError('Invalid character in name', 400));
+
 	const event = await Event.findOne({ url: req.params.id });
 	if (!event) return next(new AppError('Event not found.', 404));
 
@@ -207,6 +211,18 @@ exports.login = catchAsync(async (req, res, next) => {
 				message: 'Incorrect password',
 			});
 		}
+
+		if (timeZone !== user.timeZone) {
+			event.users.some((u) => {
+				if (u.name.toUpperCase() === name.toUpperCase()) {
+					event.markModified('users');
+					u.timeZone = timeZone;
+					return true;
+				}
+			});
+			await event.save();
+		}
+
 		createAndSendToken(event, user.id, 200, req, res);
 	}
 });
@@ -334,11 +350,10 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 		);
 
 	let existing;
+	const allEvents = await Event.find();
 	do {
 		req.body.url = randomString(16);
-		existing = await Event.findOne({
-			url: req.body.url,
-		});
+		existing = await Event.findOne({ url: req.body.url });
 	} while (existing);
 
 	if (!moment.tz.names().includes(req.body.timeZone))
@@ -363,7 +378,6 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 	let timeUntilDelete;
 	req.body.created = new Date();
 	if (req.body.eventType.split('-')[0] === 'date') {
-		// console.log(this.dates);
 		const latestDate = req.body.dates.reduce((p, c) => {
 			return new Date(p) > new Date(c) ? p : c;
 		});
@@ -380,14 +394,6 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 	if (timeUntilDelete <= max32)
 		setTimeout(autoDeleteEvent(req.body.url), timeUntilDelete);
-	// const msInDay = 1000 * 60 * 60 * 24;
-	// const d = Math.floor(timeUntilDelete / msInDay);
-	// const h = Math.floor((timeUntilDelete % msInDay) / (1000 * 60 * 60));
-	// const m = Math.floor((timeUntilDelete % 3600000) / 60000);
-	// const s = (timeUntilDelete % 60000) / 1000;
-	// console.log(
-	// 	`Event ${req.body.url} will be deleted on ${req.body.scheduledDeletion} (${d}d ${h}h ${m}m ${s}s)`
-	// );
 
 	if (req.body.eventType === 'date-time' || req.body.eventType === 'date') {
 		if (!Array.isArray(req.body.dates))
@@ -451,8 +457,16 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 	const doc = await Event.create(req.body);
 
-	console.log(doc);
-	createAndSendToken(doc, 0, 200, req, res);
+	createAndSendToken(
+		{
+			...doc,
+			url: req.body.url,
+		},
+		0,
+		200,
+		req,
+		res
+	);
 });
 
 exports.getEvent = catchAsync(async (req, res, next) => {

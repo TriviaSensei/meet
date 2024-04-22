@@ -21,9 +21,11 @@ const eventSchema = new mongoose.Schema({
 	name: {
 		type: String,
 		required: [true, 'You must specify the name of your event.'],
+		maxLength: 100,
 	},
 	description: {
 		type: String,
+		maxLength: 500,
 	},
 	url: {
 		type: String,
@@ -61,43 +63,8 @@ const eventSchema = new mongoose.Schema({
 	scheduledDeletion: Date,
 });
 
-// eventSchema.pre('save', function (next) {
-// 	if (!noBadWords(this.name) || !noBadWords(this.description))
-// 		return next(new AppError('Please watch your language.', 400));
-
-// 	next();
-// });
-
-// eventSchema.pre('save', async function (next) {
-// 	//set up scheduled deletion
-// 	if (!this.isNew) return next();
-
-// 	this.created = new Date();
-// 	let timeUntilDelete;
-// 	if (this.eventType.split('-')[0] === 'date') {
-// 		// console.log(this.dates);
-// 		const latestDate = this.dates.reduce((p, c) => {
-// 			return new Date(p) > new Date(c) ? p : c;
-// 		});
-// 		const deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
-// 		timeUntilDelete = new Date(deleteDate) - new Date();
-// 		this.scheduledDeletion = deleteDate;
-// 	} else {
-// 		const deleteDate = new Date(Date.parse(this.created) + deletionPeriod * 4);
-// 		this.scheduledDeletion = deleteDate;
-// 		timeUntilDelete = new Date(deleteDate) - new Date();
-// 	}
-
-// 	setTimeout(async () => {
-// 		const thisThing = await eventSchema.find({ url: this.url });
-// 		console.log(thisThing);
-// 	}, 5000);
-
-// 	next();
-// });
-
 eventSchema.pre('save', async function (next) {
-	//only run this function if the password was modified
+	//only run this function if the users were modified
 	if (!this.isModified('users')) {
 		return next();
 	}
@@ -111,10 +78,12 @@ eventSchema.pre('save', async function (next) {
 			return u;
 		})
 	);
+});
 
+eventSchema.pre('save', async function (next) {
 	//times only matter on continuous events
 	if (this.isModified('times')) {
-		if (this.eventType === 'continuous') {
+		if (this.eventType.indexOf('time') > 0) {
 			if (this.times.length !== 2)
 				return next(
 					new AppError(

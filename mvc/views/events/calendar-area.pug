@@ -1,0 +1,19 @@
+.w-100.p-2.f-1.d-flex.flex-column.overflow-hidden
+    ul.nav.nav-tabs.nav-fill#tab-list(role="tablist")
+        li.nav-item(role="presentation")
+            button.nav-link.active#my-calendar-tab( data-bs-toggle="tab" data-bs-target="#my-calendar-pane" type="button" role="tab" aria-controls="my-calendar-pane" aria-selected="true") My calendar
+        li.nav-item(role="presentation")
+            button.nav-link#team-calendar-tab(data-bs-toggle="tab" data-bs-target="#team-calendar-pane" type="button" role="tab" aria-controls="team-calendar-pane" aria-selected="false") Team calendar
+    .tab-content#tab-content
+        .tab-pane.fade.show.active#my-calendar-pane(role="tabpanel" aria-labelledby="my-calendar-tab" tabindex="0")
+            .tab-wrapper#calendar-wrapper
+                #my-calendar.calendar
+        .tab-pane.fade#team-calendar-pane(role="tabpanel" aria-labelledby="team-calendar-tab" tabindex="0") 
+            .tab-wrapper.overflow-hidden
+                include components/filterArea
+                .w-100.d-flex 
+                    #legend-area.m-auto.my-1.d-flex.flex-row.w-75
+                        .legend-label= `0/${event.users.length}`
+                        #legend-bar.legend.f-1.d-flex.mx-1
+                        .legend-label= `${event.users.length}/${event.users.length} available` 
+                #team-calendar.calendar.mt-1.overflow-auto

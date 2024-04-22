@@ -12,8 +12,7 @@ block content
         section.body-section.d-flex.flex-column.align-items-center.mb-2 
             include events/header
             include events/login
-            - if (event.eventType === 'date-time')
-                include events/date-time
+            include events/calendar-area
 
 
 block scripts 
