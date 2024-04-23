@@ -15,6 +15,8 @@ const legendBar = document.querySelector('#legend-bar');
 const copyButton = document.querySelector('#copy-url');
 const userFilterList = document.querySelector('#user-filter-list');
 const personCount = document.querySelector('#person-count');
+const personButton = document.querySelector('#person-button');
+const filterButton = document.querySelector('#filter-button');
 
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -637,6 +639,7 @@ const handleLogin = (e) => {
 			if (!user) return showMessage('error', 'User not found');
 			showMessage('info', `Logged in as ${user.name}`);
 			userState.setState(user);
+			//add the new user to the checkbox filters
 			const checkRow = userFilterList.querySelector(`person-${user.id}`);
 			if (!checkRow) {
 				const newRow = createElement('.d-flex.flex-row');
@@ -654,6 +657,8 @@ const handleLogin = (e) => {
 				chk.addEventListener('change', applyFilters);
 				eventState.setState(res.event);
 			}
+			//set the maxvalue of the personCount filter
+			personCount.setAttribute('max', res.event.users.length);
 		}
 	};
 
@@ -806,6 +811,9 @@ const removeTooltip = (cell) => {
 };
 
 const applyFilters = () => {
+	const pcf = document.querySelector('#person-count-filter-text');
+	const pf = document.querySelector('#person-filter-text');
+
 	const minVal = Number(personCount.value);
 	const checkedUsers = getElementArray(
 		document,
@@ -813,6 +821,7 @@ const applyFilters = () => {
 	).map((c) => {
 		return c.getAttribute('value');
 	});
+	personButton.innerHTML = `${checkedUsers.length} selected`;
 	let anyAll = document
 		.querySelector('input[type="radio"][name="user-filter-radio"]:checked')
 		?.getAttribute('value');
@@ -850,6 +859,7 @@ const applyFilters = () => {
 		getElementArray(teamCalendarArea, 'td[data-users]').forEach((c) => {
 			const availableUsers = c.getAttribute('data-users').split(',');
 			if (
+				checkedUsers.length > 0 &&
 				checkedUsers.every((u) => {
 					return !availableUsers.includes(u);
 				})
@@ -858,6 +868,43 @@ const applyFilters = () => {
 				removeTooltip(c);
 			}
 		});
+	}
+
+	if (checkedUsers.length === 0 && minVal === 1) {
+		pcf.innerHTML = 'Filters';
+		pf.innerHTML = '';
+	} else if (anyAll === 'all') {
+		if (minVal <= checkedUsers.length) {
+			pcf.innerHTML = '';
+			pf.innerHTML = `${
+				checkedUsers.length > 4 ? checkedUsers.length : checkedUsers.join(', ')
+			} available`;
+		} else {
+			pcf.innerHTML = `${minVal}+ available${
+				checkedUsers.length > 0 ? ';' : ''
+			}`;
+			if (checkedUsers.length === 0) pf.innerHTML = '';
+			else
+				pf.innerHTML = `${
+					checkedUsers.length > 3
+						? checkedUsers.length
+						: checkedUsers.join(', ')
+				} required`;
+		}
+	} else {
+		if (minVal === 1) pcf.innerHTML = '';
+		else
+			pcf.innerHTML = `${minVal}+ available${
+				checkedUsers.length > 0 ? ',' : ''
+			}`;
+
+		if (checkedUsers.length > 1)
+			pf.innerHTML = `${minVal === 1 ? 'Any' : 'including any'} of ${
+				checkedUsers.length > 4 ? checkedUsers.length : checkedUsers.join(', ')
+			}`;
+		else if (checkedUsers.length === 1)
+			pf.innerHTML = `${minVal === 1 ? '' : 'including'} ${checkedUsers[0]}`;
+		else pf.innerHTML = '';
 	}
 };
 
@@ -1010,7 +1057,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	getElementArray(userFilterList, 'input[type="checkbox"]').forEach((c) => {
-		console.log(c);
 		c.addEventListener('change', applyFilters);
 	});
 	getElementArray(document, '[name="user-filter-radio"]').forEach((r) => {

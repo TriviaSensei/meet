@@ -2,7 +2,11 @@
     #filter-accordion.accordion 
         .accordion-item 
             h2#accordion-header.accordion-header
-                button.accordion-button(type="button" data-bs-toggle="collapse" data-bs-target="#accordion-inner" aria-expanded="true" aria-controls="accordion-inner") Filters 
+                button#filter-button.accordion-button(type="button" data-bs-toggle="collapse" data-bs-target="#accordion-inner" aria-expanded="true" aria-controls="accordion-inner")
+                    include filter 
+                    #filter-text.ms-2.d-flex
+                        span#person-count-filter-text Filters
+                        span#person-filter-text.ms-1
             #accordion-inner.accordion-collapse.collapse.show(aria-labelledby="accordion-header" data-bs-parent="#filter-accordion")
                 .accordion-body.d-flex.flex-column.align-items-start
                     div Show options with...

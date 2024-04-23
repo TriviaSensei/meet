@@ -199,3 +199,12 @@
 .tooltip {
 	text-align: left;
 }
+
+button svg {
+	max-height: 1rem;
+}
+
+#filter-text {
+	text-wrap: nowrap;
+	text-overflow: ellipsis;
+}
