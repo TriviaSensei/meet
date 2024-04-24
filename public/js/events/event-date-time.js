@@ -1,8 +1,8 @@
-import { showMessage } from './utils/messages.js';
-import { StateHandler } from './utils/stateHandler.js';
-import { handleRequest } from './utils/requestHandler.js';
-import { createElement } from './utils/createElementFromSelector.js';
-import { getElementArray } from './utils/getElementArray.js';
+import { showMessage } from '../utils/messages.js';
+import { StateHandler } from '../utils/stateHandler.js';
+import { handleRequest } from '../utils/requestHandler.js';
+import { createElement } from '../utils/createElementFromSelector.js';
+import { getElementArray } from '../utils/getElementArray.js';
 
 const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
@@ -376,227 +376,230 @@ const handleHighlight = (e) => {
 	});
 };
 
+const createOption = (str, dataset) => {
+	const toReturn = createElement('.time-option');
+	const cb = createElement('input');
+	cb.setAttribute('type', 'checkbox');
+};
+
 const generateCalendar = (area, event) => {
-	const startTime = new Date();
 	area.innerHTML = '';
 	const userTZ = tzSelect.value;
 	const user = userState.getState();
 	const localOffset = new Date().getTimezoneOffset();
-	if (event.eventType === 'date-time') {
-		//sort the event dates
-		const ed = event.dates.sort((a, b) => {
-			return Date.parse(a) - Date.parse(b);
-		});
+	//sort the event dates
+	const ed = event.dates.sort((a, b) => {
+		return Date.parse(a) - Date.parse(b);
+	});
 
-		//create the date columns for each date...
-		const timeWindows = [];
-		ed.forEach((d) => {
-			//calculate the time window
-			const timeWindow = event.times.map((t, j) => {
-				const m = moment
-					.tz(
-						Date.parse(d) +
-							t * 60 * 1000 +
-							(j === 1 && event.times[0] >= event.times[1] ? 1440 : 0) *
-								60 *
-								1000 -
-							(j === 1 && event.times[1] === 0 ? 1000 : 0),
-						'GMT'
-					)
-					.tz(event.timeZone, true);
-				return m.tz(userTZ).format();
+	//create the date columns for each date...
+	const timeWindows = [];
+	ed.forEach((d) => {
+		//calculate the time window
+		const timeWindow = event.times.map((t, j) => {
+			const m = moment
+				.tz(
+					Date.parse(d) +
+						t * 60 * 1000 +
+						(j === 1 && event.times[0] >= event.times[1] ? 1440 : 0) *
+							60 *
+							1000 -
+						(j === 1 && event.times[1] === 0 ? 1000 : 0),
+					'GMT'
+				)
+				.tz(event.timeZone, true);
+			return m.tz(userTZ).format();
+		});
+		timeWindows.push(timeWindow);
+	});
+
+	//determine the start and end times of each column
+	let startTime, endTime;
+	//figure out the earliest start and latest end for any time window
+	//if any window stretches between days, the entire day must be displayed
+	timeWindows.forEach((tw) => {
+		const [a, b] = tw.map((t) => {
+			return t.split('T')[0];
+		});
+		if (a !== b) {
+			startTime = 0;
+			endTime = 1440;
+		} else {
+			const [ta, tb] = tw.map((t) => {
+				return t.split('T')[1];
 			});
-			timeWindows.push(timeWindow);
-		});
+			const startHr = Number(ta.split(':')[0]);
+			const startMin = Number(ta.split(':')[1]);
+			const endHr = Number(tb.split(':')[0]);
+			const endMin = Number(tb.split(':')[1]);
 
-		//determine the start and end times of each column
-		let startTime, endTime;
-		//figure out the earliest start and latest end for any time window
-		//if any window stretches between days, the entire day must be displayed
-		timeWindows.forEach((tw) => {
-			const [a, b] = tw.map((t) => {
-				return t.split('T')[0];
-			});
-			if (a !== b) {
-				startTime = 0;
-				endTime = 1440;
-			} else {
-				const [ta, tb] = tw.map((t) => {
-					return t.split('T')[1];
-				});
-				const startHr = Number(ta.split(':')[0]);
-				const startMin = Number(ta.split(':')[1]);
-				const endHr = Number(tb.split(':')[0]);
-				const endMin = Number(tb.split(':')[1]);
+			//find the earliest  start time and latest end time
+			//it will usually be the same for the entire window, but
+			//DST can mess with this, so we need this logic.
+			if (!startTime) startTime = startHr * 60 + startMin;
+			else startTime = Math.min(startHr * 60 + startMin, startTime);
 
-				//find the earliest  start time and latest end time
-				//it will usually be the same for the entire window, but
-				//DST can mess with this, so we need this logic.
-				if (!startTime) startTime = startHr * 60 + startMin;
-				else startTime = Math.min(startHr * 60 + startMin, startTime);
+			if (!endTime) endTime = endHr * 60 + endMin;
+			else endTime = Math.max(endTime, endHr * 60 + endMin > endTime);
+		}
+	});
 
-				if (!endTime) endTime = endHr * 60 + endMin;
-				else endTime = Math.max(endTime, endHr * 60 + endMin > endTime);
-			}
-		});
+	const tbl = createElement('table');
+	area.appendChild(tbl);
+	const headerRow = createElement('tr');
+	tbl.appendChild(headerRow);
+	const ulc = createElement('td.spacer');
+	headerRow.appendChild(ulc);
 
-		const tbl = createElement('table');
-		area.appendChild(tbl);
-		const headerRow = createElement('tr');
-		tbl.appendChild(headerRow);
-		const ulc = createElement('td.spacer');
-		headerRow.appendChild(ulc);
-
-		//create the table headers
-		timeWindows.forEach((tw, i) => {
-			//see if one already exists
-			tw.forEach((t, j) => {
-				const dateStr = t.split('T')[0];
-				//if not, create it
-				const existingHeader = area.querySelector(
-					`table tr:first-child td[data-date="${dateStr}"]`
+	//create the table headers
+	timeWindows.forEach((tw, i) => {
+		//see if one already exists
+		tw.forEach((t, j) => {
+			const dateStr = t.split('T')[0];
+			//if not, create it
+			const existingHeader = area.querySelector(
+				`table tr:first-child td[data-date="${dateStr}"]`
+			);
+			if (!existingHeader) {
+				const th = createElement('td');
+				const d = new Date(
+					Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) +
+						localOffset * 60000
 				);
-				if (!existingHeader) {
-					const th = createElement('td');
-					const d = new Date(
-						Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) +
+				const dow = dows[d.getDay()];
+				const mon = months[d.getMonth()];
+				const date = dateStr.split('-')[2];
+
+				const wd = createElement('.weekday');
+				const dateDiv = createElement('.date');
+
+				th.appendChild(dateDiv);
+				th.appendChild(wd);
+
+				wd.innerHTML = dow;
+				dateDiv.innerHTML = `${mon} ${date}`;
+				th.setAttribute('data-date', dateStr);
+				th.setAttribute('data-column', j);
+				//do we need a spacer?
+				if (i !== 0) {
+					//date string for day before this one
+					const lastDate = new Date(
+						Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) -
+							86400000 +
 							localOffset * 60000
 					);
-					const dow = dows[d.getDay()];
-					const mon = months[d.getMonth()];
-					const date = dateStr.split('-')[2];
-
-					const wd = createElement('.weekday');
-					const dateDiv = createElement('.date');
-
-					th.appendChild(dateDiv);
-					th.appendChild(wd);
-
-					wd.innerHTML = dow;
-					dateDiv.innerHTML = `${mon} ${date}`;
-					th.setAttribute('data-date', dateStr);
-					th.setAttribute('data-column', j);
-					//do we need a spacer?
-					if (i !== 0) {
-						//date string for day before this one
-						const lastDate = new Date(
-							Date.parse(new Date(`${dateStr}T00:00:00.000+00:00`)) -
-								86400000 +
-								localOffset * 60000
-						);
-						const lastDateStr = `${lastDate.getFullYear()}-${
-							lastDate.getMonth() + 1 < 10
-								? `0${lastDate.getMonth() + 1}`
-								: lastDate.getMonth() + 1
-						}-${
-							lastDate.getDate() < 10
-								? `0${lastDate.getDate()}`
-								: lastDate.getDate()
-						}`;
-						//if that date doesn't exist, we need a spacer column
-						if (!area.querySelector(`td[data-date="${lastDateStr}"]`)) {
-							const sp = createElement('td.spacer');
-							headerRow.appendChild(sp);
-						}
+					const lastDateStr = `${lastDate.getFullYear()}-${
+						lastDate.getMonth() + 1 < 10
+							? `0${lastDate.getMonth() + 1}`
+							: lastDate.getMonth() + 1
+					}-${
+						lastDate.getDate() < 10
+							? `0${lastDate.getDate()}`
+							: lastDate.getDate()
+					}`;
+					//if that date doesn't exist, we need a spacer column
+					if (!area.querySelector(`td[data-date="${lastDateStr}"]`)) {
+						const sp = createElement('td.spacer');
+						headerRow.appendChild(sp);
 					}
-
-					headerRow.appendChild(th);
 				}
-			});
+
+				headerRow.appendChild(th);
+			}
 		});
+	});
 
-		//create the time rows
-		const cols = getElementArray(area, 'table tr:first-child td');
-		for (var i = startTime; i < endTime; i += 15) {
-			const hr = Math.floor(i / 60);
-			const min = i % 60 === 0 ? '00' : i % 60;
-			const ampm = i >= 720 ? 'PM' : 'AM';
+	//create the time rows
+	const cols = getElementArray(area, 'table tr:first-child td');
+	for (var i = startTime; i < endTime; i += 15) {
+		const hr = Math.floor(i / 60);
+		const min = i % 60 === 0 ? '00' : i % 60;
+		const ampm = i >= 720 ? 'PM' : 'AM';
 
-			const newRow = createElement('tr');
-			newRow.setAttribute('data-time', `${hr}:${min}`);
-			newRow.setAttribute('data-row', (i - startTime) / 15);
-			tbl.appendChild(newRow);
-			//look at the column headers
-			cols.forEach((col, j) => {
-				//if it's spacer, we need a spacer here too.
-				if (!col.getAttribute('data-date')) {
-					const sp = createElement('td.spacer');
-					newRow.appendChild(sp);
+		const newRow = createElement('tr');
+		newRow.setAttribute('data-time', `${hr}:${min}`);
+		newRow.setAttribute('data-row', (i - startTime) / 15);
+		tbl.appendChild(newRow);
+		//look at the column headers
+		cols.forEach((col, j) => {
+			//if it's spacer, we need a spacer here too.
+			if (!col.getAttribute('data-date')) {
+				const sp = createElement('td.spacer');
+				newRow.appendChild(sp);
 
-					//if it's the first column, put the hour marker every 4th space
-					if (j === 0 && i % 60 === 0) {
-						const lbl = createElement('.time-label');
-						lbl.innerHTML = `${hr % 12 === 0 ? 12 : hr % 12} ${ampm}`;
-						sp.appendChild(lbl);
-					} else if (j === 0 && i % 60 === 45 && endTime - i <= 15) {
-						const lbl = createElement('.time-label.last');
-						lbl.innerHTML = `${(hr + 1) % 12 === 0 ? 12 : (hr + 1) % 12} ${
-							hr % 12 === 11 ? (ampm === 'AM' ? 'PM' : 'AM') : ampm
-						}`;
-						sp.appendChild(lbl);
-					}
-
-					// 	// newBox.appendChild(lbl);
-					// }
-				} else {
-					const newBox = createElement('td.time-cell.disabled');
-					newBox.setAttribute('data-time', `${hr}:${min}`);
-					newBox.setAttribute('data-date', col.getAttribute('data-date'));
-					const dtStr = `${col.getAttribute('data-date')} ${
-						hr < 10 ? '0' : ''
-					}${hr}:${min}`;
-					newBox.setAttribute(
-						'data-dt',
-						moment.tz(dtStr, user.timeZone || event.timeZone).format()
-					);
-					newBox.setAttribute('data-col', j);
-					newBox.setAttribute('data-row', (i - startTime) / 15);
-					newRow.appendChild(newBox);
-					if (area === myCalendarArea) {
-						newBox.addEventListener('touchstart', touchStart);
-						newBox.addEventListener('mousedown', touchStart);
-						newBox.addEventListener('touchmove', touchMove);
-						newBox.addEventListener('mousemove', touchMove);
-					}
-					//this box's date time
-					const boxDT = moment
-						.tz(
-							`${col.getAttribute('data-date')} ${
-								hr < 10 ? '0' : ''
-							}${hr}:${min}`,
-							userTZ
-						)
-						.format();
-					//should this box be enabled?
-					if (
-						event.dates.some((d) => {
-							const windowStart = moment
-								.tz(Date.parse(d) + event.times[0] * 60000, 'GMT')
-								.format();
-							let windowEnd;
-
-							if (event.times[0] < event.times[1]) {
-								windowEnd = moment
-									.tz(Date.parse(d) + event.times[1] * 60000, 'GMT')
-									.format();
-							} else {
-								windowEnd = moment
-									.tz(Date.parse(d) + (event.times[1] + 1440) * 60000, 'GMT')
-									.format();
-							}
-							const bdt = Date.parse(boxDT);
-							if (
-								Date.parse(windowStart) + localOffset * 60000 <= bdt &&
-								Date.parse(windowEnd) + localOffset * 60000 > bdt
-							)
-								return true;
-						})
-					) {
-						newBox.classList.remove('disabled');
-					}
+				//if it's the first column, put the hour marker every 4th space
+				if (j === 0 && i % 60 === 0) {
+					const lbl = createElement('.time-label');
+					lbl.innerHTML = `${hr % 12 === 0 ? 12 : hr % 12} ${ampm}`;
+					sp.appendChild(lbl);
+				} else if (j === 0 && i % 60 === 45 && endTime - i <= 15) {
+					const lbl = createElement('.time-label.last');
+					lbl.innerHTML = `${(hr + 1) % 12 === 0 ? 12 : (hr + 1) % 12} ${
+						hr % 12 === 11 ? (ampm === 'AM' ? 'PM' : 'AM') : ampm
+					}`;
+					sp.appendChild(lbl);
 				}
-			});
-		}
+
+				// 	// newBox.appendChild(lbl);
+				// }
+			} else {
+				const newBox = createElement('td.time-cell.disabled');
+				newBox.setAttribute('data-time', `${hr}:${min}`);
+				newBox.setAttribute('data-date', col.getAttribute('data-date'));
+				const dtStr = `${col.getAttribute('data-date')} ${
+					hr < 10 ? '0' : ''
+				}${hr}:${min}`;
+				newBox.setAttribute(
+					'data-dt',
+					moment.tz(dtStr, user.timeZone || event.timeZone).format()
+				);
+				newBox.setAttribute('data-col', j);
+				newBox.setAttribute('data-row', (i - startTime) / 15);
+				newRow.appendChild(newBox);
+				if (area === myCalendarArea) {
+					newBox.addEventListener('touchstart', touchStart);
+					newBox.addEventListener('mousedown', touchStart);
+					newBox.addEventListener('touchmove', touchMove);
+					newBox.addEventListener('mousemove', touchMove);
+				}
+				//this box's date time
+				const boxDT = moment
+					.tz(
+						`${col.getAttribute('data-date')} ${
+							hr < 10 ? '0' : ''
+						}${hr}:${min}`,
+						userTZ
+					)
+					.format();
+				//should this box be enabled?
+				if (
+					event.dates.some((d) => {
+						const windowStart = moment
+							.tz(Date.parse(d) + event.times[0] * 60000, 'GMT')
+							.format();
+						let windowEnd;
+
+						if (event.times[0] < event.times[1]) {
+							windowEnd = moment
+								.tz(Date.parse(d) + event.times[1] * 60000, 'GMT')
+								.format();
+						} else {
+							windowEnd = moment
+								.tz(Date.parse(d) + (event.times[1] + 1440) * 60000, 'GMT')
+								.format();
+						}
+						const bdt = Date.parse(boxDT);
+						if (
+							Date.parse(windowStart) + localOffset * 60000 <= bdt &&
+							Date.parse(windowEnd) + localOffset * 60000 > bdt
+						)
+							return true;
+					})
+				) {
+					newBox.classList.remove('disabled');
+				}
+			}
+		});
 	}
 
 	if (area === myCalendarArea)
@@ -811,6 +814,8 @@ const removeTooltip = (cell) => {
 };
 
 const applyFilters = () => {
+	const state = eventState.getState();
+
 	const pcf = document.querySelector('#person-count-filter-text');
 	const pf = document.querySelector('#person-filter-text');
 
@@ -870,6 +875,7 @@ const applyFilters = () => {
 		});
 	}
 
+	//filter text
 	if (checkedUsers.length === 0 && minVal === 1) {
 		pcf.innerHTML = 'Filters';
 		pf.innerHTML = '';
@@ -903,7 +909,11 @@ const applyFilters = () => {
 				checkedUsers.length > 4 ? checkedUsers.length : checkedUsers.join(', ')
 			}`;
 		else if (checkedUsers.length === 1)
-			pf.innerHTML = `${minVal === 1 ? '' : 'including'} ${checkedUsers[0]}`;
+			pf.innerHTML = `${
+				minVal === 1
+					? checkedUsers[0] + ' available'
+					: 'including ' + checkedUsers[0]
+			}`;
 		else pf.innerHTML = '';
 	}
 };
@@ -922,40 +932,38 @@ const populateTeamCalendar = (event) => {
 	const obj = {};
 	const user = userState.getState();
 
-	if (event.eventType === 'date-time') {
-		event.users.forEach((u) => {
-			u.availability.forEach((a) => {
-				const str = moment
-					.tz(a, u.timeZone)
-					.tz(user.timeZone || tzSelect.value)
-					.format();
-				if (!obj[str]) obj[str] = [u.name];
-				else obj[str] = [...obj[str], u.name];
-			});
+	event.users.forEach((u) => {
+		u.availability.forEach((a) => {
+			const str = moment
+				.tz(a, u.timeZone)
+				.tz(user.timeZone || tzSelect.value)
+				.format();
+			if (!obj[str]) obj[str] = [u.name];
+			else obj[str] = [...obj[str], u.name];
 		});
-		const cells = getElementArray(teamCalendarArea, '[data-count]');
-		//find any cells with a data-count
-		cells.forEach((c) => {
-			//get the datetime string for each cell
-			const dt = c.getAttribute('data-dt');
-			//if there is no availability on that datetime, remove the data-count and style attributes from the cell (uncolor it)
-			if (!obj[dt]) {
-				c.removeAttribute('data-count');
-				c.removeAttribute('style');
-			}
-		});
+	});
+	const cells = getElementArray(teamCalendarArea, '[data-count]');
+	//find any cells with a data-count
+	cells.forEach((c) => {
+		//get the datetime string for each cell
+		const dt = c.getAttribute('data-dt');
+		//if there is no availability on that datetime, remove the data-count and style attributes from the cell (uncolor it)
+		if (!obj[dt]) {
+			c.removeAttribute('data-count');
+			c.removeAttribute('style');
+		}
+	});
 
-		//for each date time that we DO have availability...
-		Object.getOwnPropertyNames(obj).forEach((s) => {
-			//find the corresponding cell
-			const cell = teamCalendarArea.querySelector(`[data-dt="${s}"]`);
-			if (!cell) return;
-			cell.setAttribute('data-count', obj[s].length);
-			cell.setAttribute('data-users', obj[s]);
-			colorCell(cell);
-			addTooltip(cell);
-		});
-	}
+	//for each date time that we DO have availability...
+	Object.getOwnPropertyNames(obj).forEach((s) => {
+		//find the corresponding cell
+		const cell = teamCalendarArea.querySelector(`[data-dt="${s}"]`);
+		if (!cell) return;
+		cell.setAttribute('data-count', obj[s].length);
+		cell.setAttribute('data-users', obj[s]);
+		colorCell(cell);
+		addTooltip(cell);
+	});
 };
 
 document.addEventListener('DOMContentLoaded', () => {

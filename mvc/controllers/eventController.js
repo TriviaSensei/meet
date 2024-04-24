@@ -377,11 +377,21 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 	let timeUntilDelete;
 	req.body.created = new Date();
+	console.log(req.body);
 	if (req.body.eventType.split('-')[0] === 'date') {
-		const latestDate = req.body.dates.reduce((p, c) => {
-			return new Date(p) > new Date(c) ? p : c;
-		});
-		const deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
+		let latestDate, deleteDate;
+		if (req.body.eventType === 'date-list') {
+			latestDate = req.body.timeList.reduce((p, c) => {
+				return new Date(p) > new Date(c.timeString)
+					? p
+					: new Date(c.timeString);
+			});
+		} else if (req.body.eventType === 'date-time') {
+			latestDate = req.body.dates.reduce((p, c) => {
+				return new Date(p) > new Date(c) ? p : c;
+			});
+		}
+		deleteDate = new Date(Date.parse(latestDate) + deletionPeriod);
 		timeUntilDelete = new Date(deleteDate) - new Date();
 		req.body.scheduledDeletion = deleteDate;
 	} else {

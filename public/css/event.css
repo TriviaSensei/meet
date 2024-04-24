@@ -1,3 +1,8 @@
+html,
+body {
+	overflow-y: hidden;
+}
+
 .app-container {
 	display: flex;
 	flex-direction: column;
@@ -207,4 +212,28 @@ button svg {
 #filter-text {
 	text-wrap: nowrap;
 	text-overflow: ellipsis;
+}
+
+.date-slot {
+	display: flex;
+	flex-direction: column;
+	margin-bottom: 0.5rem;
+	.date-header {
+		font-weight: bold;
+		text-decoration: underline;
+	}
+	.time-option {
+		display: flex;
+		flex-direction: row;
+		margin-bottom: 0.3rem;
+	}
+	input[type='checkbox'] {
+		height: 1.5rem;
+		width: 1.5rem;
+		margin: auto 0;
+		margin-right: 0.5rem;
+	}
+	input[type='checkbox']:checked + label {
+		font-weight: bold;
+	}
 }

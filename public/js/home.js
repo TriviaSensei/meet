@@ -298,16 +298,6 @@ const handleAddTime = (e) => {
 		}
 	});
 	sh.setState(state);
-
-	// if (state.timeList.includes(t))
-	// 	return showMessage(
-	// 		'error',
-	// 		`${hr}:${min === '0' ? '00' : min} ${ampm} has already been added`
-	// 	);
-	// else {
-	// 	state.timeList.push(t);
-	// 	sh.setState(state);
-	// }
 };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -660,7 +650,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	//submit form
 
 	submitButton.addEventListener('click', (e) => {
-		submitButton.disabled = true;
 		const state = sh.getState();
 		const ev = eventName.value;
 
@@ -736,6 +725,8 @@ document.addEventListener('DOMContentLoaded', () => {
 				};
 			}
 		}
+		submitButton.disabled = true;
+
 		handleRequest(`/api/v1/events`, 'POST', body, (res) => {
 			if (res.status === 'success') {
 				showMessageStatic('info', 'Successfully created event.', 2000);
