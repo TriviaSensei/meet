@@ -5,15 +5,15 @@
             span.bold.me-2 Logged in as: 
             span= user.name
     - else 
-        #login.d-flex.w-100.justify-content-around.mb-2
-            .input-container
+        #login.d-flex.w-100.mb-2
+            .d-flex.flex-column.me-2
                 .input-label.d-flex
                     div Your name
                     div(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Your name and password are for this event only. Use a recognizable name so the organizer knows who you are.") 
                         include ../svg/help
                 .d-flex
                     input#user-name(type="text" name="name" placeholder="Name")
-            .input-container
+            .d-flex.flex-column.me-2
                 .input-label.d-flex 
                     div Password
                     div(data-bs-toggle="tooltip" data-bs-placement="top" data-bs-title="Your name and password are for this event only. There is no length or complexity requirement.") 

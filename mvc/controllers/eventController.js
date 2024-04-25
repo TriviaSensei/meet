@@ -86,7 +86,6 @@ const createAndSendToken = (event, user, statusCode, req, res) => {
 			};
 		});
 
-	console.log(event);
 	res.status(statusCode).json({
 		status: 'success',
 		user,
@@ -377,7 +376,6 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 	let timeUntilDelete;
 	req.body.created = new Date();
-	console.log(req.body);
 	if (req.body.eventType.split('-')[0] === 'date') {
 		let latestDate, deleteDate;
 		if (req.body.eventType === 'date-list') {

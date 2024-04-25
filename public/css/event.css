@@ -237,3 +237,51 @@ button svg {
 		font-weight: bold;
 	}
 }
+
+#login-container > div {
+	margin: auto 0;
+}
+
+.bar-container {
+	display: flex;
+	margin-bottom: 5px;
+	.bar-label {
+		margin-top: auto;
+		margin-bottom: auto;
+		width: 8rem;
+		text-align: right;
+		margin-right: 5px;
+	}
+	.bar {
+		flex: 1;
+		.bar-inner {
+			height: 100%;
+			color: yellow;
+			transition: width 200ms;
+		}
+	}
+}
+
+.bar-container[data-count='0'] .bar-inner {
+	color: var(--text-color);
+}
+
+.bar-inner {
+	width: 40px;
+	border: 1px solid var(--text-color);
+	padding-left: 1rem;
+	font-weight: bold;
+}
+
+.date-slot[data-count='0'] .bar-container,
+.bar-container[data-count='0'],
+.date-slot.hide .bar-container,
+.bar-container.hide {
+	display: none;
+}
+
+.date-slot[data-count='0']::after,
+.date-slot:not(:has(> .bar-container:not(.hide), > .time-option))::after,
+.date-slot.hide::after {
+	content: 'None';
+}

@@ -78,25 +78,36 @@ const testTimeZones = [
 
 let eventState, userState;
 
-const touchEnd = (e) => {
-	return;
-
+const updateAvailability = (e) => {
 	//add API connection here
 	const es = eventState.getState();
+	const us = userState.getState();
+
+	const checked = getElementArray(
+		myCalendarArea,
+		'input[type="checkbox"]:checked'
+	).map((cb) => cb.value);
+
 	const str = `/api/v1/events/updateAvailability/${es.url}`;
 	const handler = (res) => {
 		if (res.status !== 'success') {
 			showMessage('error', res.message);
-			userState.setState(oldUser);
+			us.setState((prev) => {
+				return {
+					...prev,
+					availability: checked,
+				};
+			});
 		} else {
 			eventState.setState(res.data);
+			generateCalendar(teamCalendarArea, res.data);
 		}
 	};
 	handleRequest(
 		str,
 		'PATCH',
 		{
-			availability: user.availability,
+			availability: checked,
 		},
 		handler
 	);
@@ -108,8 +119,12 @@ const createOption = (str, dataset) => {
 	cb.setAttribute('type', 'checkbox');
 	const props = Object.getOwnPropertyNames(dataset);
 	props.forEach((p) => {
-		cb.setAttribute(p, dataset[p]);
+		if (typeof dataset[p] === 'boolean') {
+			if (!dataset[p]) return;
+			else cb[p] = true;
+		} else cb.setAttribute(p, dataset[p]);
 	});
+	cb.addEventListener('change', updateAvailability);
 	toReturn.appendChild(cb);
 	const lbl = createElement('label');
 	lbl.setAttribute('for', dataset.id);
@@ -119,10 +134,12 @@ const createOption = (str, dataset) => {
 };
 
 const generateCalendar = (area, event) => {
-	area.innerHTML = '';
-	const container = createElement('.d-flex.flex-column.w-100.h-100');
-	area.appendChild(container);
-	container.innerHTML = '<div>Select your available times:</div>';
+	let container = area.querySelector('.cal-inner');
+	if (!container) {
+		area.innerHTML = '';
+		container = createElement('.cal-inner.d-flex.flex-column.w-100.h-100');
+		area.appendChild(container);
+	}
 	const userTZ = tzSelect.value;
 	const user = userState.getState();
 	const localOffset = new Date().getTimezoneOffset();
@@ -135,49 +152,171 @@ const generateCalendar = (area, event) => {
 			return new Date(a) - new Date(b);
 		});
 
+	//set the header text if needed
+	if (area === myCalendarArea) {
+		let headerText = container.querySelector('.calendar-banner');
+		if (!headerText) {
+			headerText = createElement('.calendar-banner');
+			if (!user.name) {
+				container.innerHTML = '';
+				headerText.innerHTML = 'You must log in to see your calendar';
+				container.appendChild(headerText);
+				return;
+			}
+			headerText.innerHTML = 'Select your available times:';
+			container.appendChild(headerText);
+		}
+	}
+
+	//set the date slots
+	candidates.forEach((c) => {
+		const arr = c.split('T');
+		const date = arr[0];
+		let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
+		if (!dateSlot) {
+			dateSlot = createElement('.date-slot');
+			dateSlot.setAttribute('data-date', date);
+			if (area === teamCalendarArea) dateSlot.setAttribute('data-count', 0);
+			container.appendChild(dateSlot);
+			const dateHeader = createElement('.date-header');
+			const dowIndex = new Date(
+				Date.parse(new Date(c)) + localOffset * 60000
+			).getDay();
+			const dow = dows[dowIndex];
+			const m = months[Number(date.split('-')[1] - 1)];
+			const dateArr = date.split('-');
+			dateHeader.innerHTML = `${dow} ${m} ${dateArr[2]}, ${dateArr[0]}`;
+			dateSlot.appendChild(dateHeader);
+		}
+	});
+
+	//set the time slots
 	if (area === myCalendarArea) {
 		candidates.forEach((c) => {
-			console.log(c);
 			const arr = c.split('T');
 			const date = arr[0];
 			const timeArr = arr[1]
 				.split('-')[0]
 				.split(':')
 				.map((n) => Number(n));
-			let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
-			if (!dateSlot) {
-				dateSlot = createElement('.date-slot');
-				dateSlot.setAttribute('data-date', date);
-				container.appendChild(dateSlot);
-				const dateHeader = createElement('.date-header');
-				const dowIndex = new Date(
-					Date.parse(new Date(c) + localOffset * 60000)
-				).getDay();
-				console.log(dowIndex);
-				const dow = dows[dowIndex];
-				const m = months[Number(date.split('-')[1])];
-				const dateArr = date.split('-');
-				dateHeader.innerHTML = `${dow} ${m} ${dateArr[1]}, ${dateArr[0]}`;
-				dateSlot.appendChild(dateHeader);
-			}
+			let dateSlot = container.querySelector(`.date-slot[data-date="${date}"]`);
 			const timeStr = `${
 				timeArr[0] % 12 === 0
 					? 12
 					: timeArr[0] % 12 < 10
-					? `0${timeArr[0]}`
+					? `0${timeArr[0] % 12}`
 					: timeArr[0]
 			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
 				timeArr[0] >= 12 ? 'PM' : 'AM'
 			}`;
-			const newTime = createOption(timeStr, {
-				'data-date': date,
-				'data-time': timeStr,
-				value: `${date} ${timeStr}`,
-				id: `cb-${Date.parse(new Date(c))}`,
-			});
-			dateSlot.appendChild(newTime);
+			const timeSlot = container.querySelector(`.time-option[value="${c}"]`);
+			if (!timeSlot) {
+				const newTime = createOption(timeStr, {
+					'data-date': date,
+					'data-time': timeStr,
+					value: c,
+					id: `cb-${Date.parse(new Date(c))}`,
+					checked: user.availability.includes(c),
+				});
+				dateSlot.appendChild(newTime);
+			}
 		});
 	} else {
+		candidates.forEach((c) => {
+			const arr = c.split('T');
+			const date = arr[0];
+			const dateSlot = container.querySelector(
+				`.date-slot[data-date="${date}"]`
+			);
+			const timeArr = arr[1]
+				.split('-')[0]
+				.split(':')
+				.map((n) => Number(n));
+			const timeStr = `${
+				timeArr[0] % 12 === 0
+					? 12
+					: timeArr[0] % 12 < 10
+					? `0${timeArr[0] % 12}`
+					: timeArr[0]
+			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
+				timeArr[0] >= 12 ? 'PM' : 'AM'
+			}`;
+			let barContainer = container.querySelector(
+				`.bar-container[data-value="${c}"]`
+			);
+			if (!barContainer) {
+				barContainer = createElement('.bar-container');
+				barContainer.setAttribute('data-value', c);
+				const lbl = createElement('.bar-label');
+				lbl.innerHTML = timeStr;
+				barContainer.appendChild(lbl);
+				const bar = createElement('.bar');
+				const barInner = createElement('.bar-inner');
+				barInner.setAttribute('data-date', date);
+				barInner.setAttribute('data-time', timeStr);
+				barInner.setAttribute(
+					'data-count',
+					barContainer.getAttribute('data-count')
+				);
+				barInner.setAttribute('data-bs-toggle', 'tooltip');
+				barInner.setAttribute('data-bs-html', 'true');
+				bar.appendChild(barInner);
+				barContainer.appendChild(bar);
+				dateSlot.appendChild(barContainer);
+			}
+			barContainer.setAttribute('data-count', 0);
+		});
+		event.users.forEach((u) => {
+			u.availability.forEach((a) => {
+				const v = moment
+					.tz(a, u.timeZone)
+					.tz(user.timeZone || tzSelect.value)
+					.format();
+				const bc = area.querySelector(`.bar-container[data-value="${v}"]`);
+				if (!bc) return;
+				bc.setAttribute(
+					'data-count',
+					Number(bc.getAttribute('data-count')) + 1 || 1
+				);
+				const list = bc.getAttribute('data-users');
+				if (!list) bc.setAttribute('data-users', u.name);
+				else if (list.indexOf(u.name) < 0)
+					bc.setAttribute('data-users', `${list},${u.name}`);
+			});
+		});
+		getElementArray(container, '.date-slot').forEach((ds) => {
+			let count = 0;
+			getElementArray(ds, '.bar-container').forEach((bc) => {
+				count = count + (Number(bc.getAttribute('data-count')) || 0);
+			});
+			ds.setAttribute('data-count', count);
+		});
+		getElementArray(container, '.bar-container').forEach((b) => {
+			const inner = b.querySelector('.bar-inner');
+			inner.setAttribute(
+				'data-bs-title',
+				`${inner.getAttribute('data-date')}<br>${inner.getAttribute(
+					'data-time'
+				)}<br><u>${b.getAttribute('data-count')} available</u><br>${b
+					.getAttribute('data-users')
+					.split(',')
+					.join('<br>')}`
+			);
+			new bootstrap.Tooltip(inner);
+			inner.removeAttribute('style');
+			inner.innerHTML = b.getAttribute('data-count');
+			const bar = b.querySelector('.bar');
+			const innerWidth = 40;
+			const diff = bar.getBoundingClientRect().width - innerWidth;
+			const ct = Number(b.getAttribute('data-count'));
+			const pct = ct / event.users.length;
+			const color = colorMap[ct].color;
+			if (ct > 0)
+				inner.setAttribute(
+					'style',
+					`background-color:#${color};width:${innerWidth + pct * diff}px;`
+				);
+		});
 	}
 };
 
@@ -215,7 +354,7 @@ const handleLogin = (e) => {
 			showMessage('info', `Logged in as ${user.name}`);
 			userState.setState(user);
 			//add the new user to the checkbox filters
-			const checkRow = userFilterList.querySelector(`person-${user.id}`);
+			const checkRow = userFilterList.querySelector(`#person-${user.id}`);
 			if (!checkRow) {
 				const newRow = createElement('.d-flex.flex-row');
 				const chk = createElement('input.me-2');
@@ -234,6 +373,7 @@ const handleLogin = (e) => {
 			}
 			//set the maxvalue of the personCount filter
 			personCount.setAttribute('max', res.event.users.length);
+			generateCalendar(myCalendarArea, res.event);
 		}
 	};
 
@@ -247,6 +387,14 @@ const handleLogin = (e) => {
 		},
 		handler
 	);
+};
+
+const allAvailability = (e) => {
+	getElementArray(myCalendarArea, 'input[type="checkbox"]').forEach((cb) => {
+		cb.checked = true;
+	});
+
+	updateAvailability();
 };
 
 const clearAvailability = (e) => {
@@ -265,6 +413,12 @@ const clearAvailability = (e) => {
 					};
 				});
 				showMessage('info', 'Availability cleared');
+				getElementArray(myCalendarArea, 'input[type="checkbox"]').forEach(
+					(cb) => {
+						cb.checked = false;
+					}
+				);
+				generateCalendar(teamCalendarArea, res.data);
 			} else {
 				showMessage('error', res.message);
 				userState.setState(us);
@@ -279,6 +433,8 @@ const changeTimeZone = (e) => {
 	const handler = (res) => {
 		if (res.status === 'success') {
 			userState.setState(res.user);
+			myCalendarArea.innerHTML = '';
+			teamCalendarArea.innerHTML = '';
 			generateCalendar(myCalendarArea, res.event);
 			generateCalendar(teamCalendarArea, res.event);
 			populateTeamCalendar(event);
@@ -342,15 +498,12 @@ const setCalendarSize = () => {
 		const rect = c.getBoundingClientRect();
 		if (rect) usedHeight = usedHeight + rect.height;
 	});
-	teamCalendarArea.setAttribute(
-		'style',
-		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
-	);
 
 	teamCalendarArea.setAttribute(
 		'style',
 		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
 	);
+	if (eventState) generateCalendar(teamCalendarArea, eventState.getState());
 };
 
 const addTooltip = (cell) => {
@@ -386,8 +539,6 @@ const removeTooltip = (el) => {
 };
 
 const applyFilters = () => {
-	const state = eventState.getState();
-
 	const pcf = document.querySelector('#person-count-filter-text');
 	const pf = document.querySelector('#person-filter-text');
 
@@ -406,6 +557,46 @@ const applyFilters = () => {
 		anyAll = 'all';
 		const allRadio = document.querySelector('#user-filter-all');
 		if (allRadio) allRadio.checked = true;
+	}
+
+	//remove bars with not enough users
+	getElementArray(teamCalendarArea, '.bar-container').forEach((bc) => {
+		const n = Number(bc.getAttribute('data-count'));
+
+		if (n < minVal) bc.classList.add('hide');
+		else bc.classList.remove('hide');
+	});
+
+	//remove bars with not the right users, if necessary
+	if (checkedUsers.length > 0) {
+		if (anyAll === 'all') {
+			getElementArray(
+				teamCalendarArea,
+				'.bar-container[data-users]:not(.hide)'
+			).forEach((bc) => {
+				const availableUsers = bc.getAttribute('data-users').split(',');
+				if (
+					checkedUsers.some((u) => {
+						return !availableUsers.includes(u);
+					})
+				)
+					bc.classList.add('hide');
+			});
+		} else {
+			getElementArray(
+				teamCalendarArea,
+				'.bar-container[data-users]:not(.hide)'
+			).forEach((bc) => {
+				const availableUsers = bc.getAttribute('data-users').split(',');
+				if (
+					checkedUsers.every((u) => {
+						return !availableUsers.includes(u);
+					})
+				) {
+					bc.classList.add('hide');
+				}
+			});
+		}
 	}
 
 	//filter text
@@ -482,18 +673,22 @@ document.addEventListener('DOMContentLoaded', () => {
 	userState.addWatcher(null, (state) => {
 		if (!state.name) return;
 		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-2');
-		const sp1 = createElement('span.bold.me-2');
-		const sp2 = createElement('span');
-		const btn = createElement('button.btn.btn-primary.btn-sm.mx-2');
+		const cont = createElement('.d-flex.flex-row.w-100.my-1');
+		const sp1 = createElement('.bold.me-2.my-auto');
+		const sp2 = createElement('.my-auto');
+		const btn1 = createElement('button.btn.btn-primary.btn-sm.mx-3');
+		const btn2 = createElement('button.btn.btn-primary.btn-sm.mx-3');
 		sp1.innerHTML = 'Logged in as:';
 		sp2.innerHTML = state.name;
-		btn.innerHTML = 'Clear Availability';
-		btn.addEventListener('click', clearAvailability);
+		btn1.innerHTML = 'Select All Availability';
+		btn2.innerHTML = 'Clear Availability';
+		btn1.addEventListener('click', allAvailability);
+		btn2.addEventListener('click', clearAvailability);
 		loginContainer.appendChild(cont);
 		cont.appendChild(sp1);
 		cont.appendChild(sp2);
-		cont.appendChild(btn);
+		cont.appendChild(btn1);
+		cont.appendChild(btn2);
 
 		getElementArray(tzSelect, 'option').some((o, i) => {
 			if (o.value === state.timeZone) {
@@ -523,14 +718,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
 	if (eventData) {
 		eventState = new StateHandler(eventData);
-		generateCalendar(myCalendarArea, eventData);
-		generateCalendar(teamCalendarArea, eventData);
 	}
 
 	eventState.addWatcher(legendBar, drawLegend);
 	eventState.addWatcher(null, (state) => {
 		if (state) populateTeamCalendar(state);
 	});
+
+	if (eventData) {
+		generateCalendar(myCalendarArea, eventData);
+		generateCalendar(teamCalendarArea, eventData);
+	}
+
 	if (eventData) populateTeamCalendar(eventData);
 
 	document.addEventListener('shown.bs.collapse', setCalendarSize);
@@ -551,4 +750,5 @@ document.addEventListener('DOMContentLoaded', () => {
 	personCount.addEventListener('change', applyFilters);
 
 	if (login) login.addEventListener('click', handleLogin);
+	tzSelect.addEventListener('change', changeTimeZone);
 });

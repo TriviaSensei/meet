@@ -90,6 +90,7 @@ let eventState, userState;
 const touchStart = (e) => {
 	const state = touchState.getState();
 	if (state.isMobile && e.type === 'mousedown') return;
+	if (e.type === 'mousedown' && e.button !== 0) return;
 	const user = userState.getState();
 	if (!user.name) return;
 	const tt = e.type === 'touchstart' ? e.targetTouches[0] : e;
@@ -643,7 +644,7 @@ const handleLogin = (e) => {
 			showMessage('info', `Logged in as ${user.name}`);
 			userState.setState(user);
 			//add the new user to the checkbox filters
-			const checkRow = userFilterList.querySelector(`person-${user.id}`);
+			const checkRow = userFilterList.querySelector(`#person-${user.id}`);
 			if (!checkRow) {
 				const newRow = createElement('.d-flex.flex-row');
 				const chk = createElement('input.me-2');
@@ -692,12 +693,49 @@ const clearAvailability = (e) => {
 						availability: [],
 					};
 				});
+				eventState.setState(res.data);
+				applyFilters();
 				showMessage('info', 'Availability cleared');
 			} else {
 				showMessage('error', res.message);
 				userState.setState(us);
 			}
 		}
+	);
+};
+
+const allAvailability = () => {
+	const toSend = [];
+	const availability = getElementArray(myCalendarArea, '.time-cell');
+	availability.forEach((a) => {
+		a.classList.add('selected');
+		toSend.push(a.getAttribute('data-dt'));
+	});
+	//add API connection here
+	const es = eventState.getState();
+	const oldUser = userState.getState();
+	userState.setState((prev) => {
+		return {
+			...prev,
+			availability: toSend,
+		};
+	});
+	const str = `/api/v1/events/updateAvailability/${es.url}`;
+	const handler = (res) => {
+		if (res.status !== 'success') {
+			showMessage('error', res.message);
+			userState.setState(oldUser);
+		} else {
+			eventState.setState(res.data);
+		}
+	};
+	handleRequest(
+		str,
+		'PATCH',
+		{
+			availability: toSend,
+		},
+		handler
 	);
 };
 
@@ -814,8 +852,6 @@ const removeTooltip = (cell) => {
 };
 
 const applyFilters = () => {
-	const state = eventState.getState();
-
 	const pcf = document.querySelector('#person-count-filter-text');
 	const pf = document.querySelector('#person-filter-text');
 
@@ -995,18 +1031,22 @@ document.addEventListener('DOMContentLoaded', () => {
 	userState.addWatcher(null, (state) => {
 		if (!state.name) return;
 		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-2');
-		const sp1 = createElement('span.bold.me-2');
-		const sp2 = createElement('span');
-		const btn = createElement('button.btn.btn-primary.btn-sm.mx-2');
+		const cont = createElement('.d-flex.flex-row.w-100.my-1');
+		const sp1 = createElement('.bold.me-2.my-auto');
+		const sp2 = createElement('.my-auto');
+		const btn1 = createElement('button.btn.btn-primary.btn-sm.mx-3');
+		const btn2 = createElement('button.btn.btn-primary.btn-sm.mx-3');
 		sp1.innerHTML = 'Logged in as:';
 		sp2.innerHTML = state.name;
-		btn.innerHTML = 'Clear Availability';
-		btn.addEventListener('click', clearAvailability);
+		btn1.innerHTML = 'Select All Availability';
+		btn2.innerHTML = 'Clear Availability';
+		btn1.addEventListener('click', allAvailability);
+		btn2.addEventListener('click', clearAvailability);
 		loginContainer.appendChild(cont);
 		cont.appendChild(sp1);
 		cont.appendChild(sp2);
-		cont.appendChild(btn);
+		cont.appendChild(btn1);
+		cont.appendChild(btn2);
 
 		getElementArray(tzSelect, 'option').some((o, i) => {
 			if (o.value === state.timeZone) {
