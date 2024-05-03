@@ -3,13 +3,14 @@ import { StateHandler } from '../utils/stateHandler.js';
 import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
+import { dows, months, colors, testTimeZones } from './params.js';
 
 const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
 const userName = document.querySelector('#user-name');
 const password = document.querySelector('#password');
 const tzSelect = document.querySelector('#timezone');
-const myCalendarArea = document.querySelector('#my-calendar');
+const myCalendarArea = document.querySelector('#calendar-container');
 const teamCalendarArea = document.querySelector('#team-calendar');
 const legendBar = document.querySelector('#legend-bar');
 const copyButton = document.querySelector('#copy-url');
@@ -17,64 +18,17 @@ const userFilterList = document.querySelector('#user-filter-list');
 const personCount = document.querySelector('#person-count');
 const personButton = document.querySelector('#person-button');
 const filterButton = document.querySelector('#filter-button');
-
+const calendarHeading = document.querySelector('#calendar-heading');
+const selectClear = document.querySelector('#select-clear-container');
+const selectAllAvail = document.querySelector('#select-all');
+const clearAvail = document.querySelector('#clear-availability');
+const errorMessage = 'Something went wrong. Try again in a few seconds.';
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
 );
 const tooltipList = [...tooltipTriggerList].map(
 	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
 );
-
-const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const months = [
-	'Jan',
-	'Feb',
-	'Mar',
-	'Apr',
-	'May',
-	'Jun',
-	'Jul',
-	'Aug',
-	'Sep',
-	'Oct',
-	'Nov',
-	'Dec',
-];
-
-const colors = [
-	'DDDDDD',
-	'D4D7DD',
-	'CCD0DD',
-	'C3CADE',
-	'BAC3DE',
-	'B2BDDE',
-	'A9B6DE',
-	'A0B0DE',
-	'98A9DE',
-	'8FA3DF',
-	'869CDF',
-	'7E96DF',
-	'758FDF',
-	'6C89DF',
-	'6482DF',
-	'5B7CE0',
-	'5275E0',
-	'4A6FE0',
-	'4168E0',
-	'3862E0',
-	'305BE0',
-	'2755E1',
-	'1E4EE1',
-	'1648E1',
-	'0D41E1',
-];
-
-const testTimeZones = [
-	'Europe/Lisbon',
-	'America/New_York',
-	'America/Los_Angeles',
-	'America/Halifax',
-];
 
 let touchState = new StateHandler({
 	isMobile: false,
@@ -300,7 +254,7 @@ const touchEnd = (e) => {
 	const str = `/api/v1/events/updateAvailability/${es.url}`;
 	const handler = (res) => {
 		if (res.status !== 'success') {
-			showMessage('error', res.message);
+			showMessage('error', errorMessage);
 			userState.setState(oldUser);
 		} else {
 			eventState.setState(res.data);
@@ -474,7 +428,7 @@ const generateCalendar = (area, event) => {
 				const wd = createElement('.weekday');
 				const dateDiv = createElement('.date');
 
-				th.appendChild(dateDiv);
+				if (event.eventType === 'date-time') th.appendChild(dateDiv);
 				th.appendChild(wd);
 
 				wd.innerHTML = dow;
@@ -633,7 +587,7 @@ const handleLogin = (e) => {
 	if ((userName && !user) || (password && !pw))
 		return showMessage('error', 'Please provide a username and password.');
 
-	if (!eventId) return showMessage('error', 'Something went wrong');
+	if (!eventId) return showMessage('error', errorMessage);
 
 	const handler = (res) => {
 		if (res.status === 'success') {
@@ -663,6 +617,8 @@ const handleLogin = (e) => {
 			}
 			//set the maxvalue of the personCount filter
 			personCount.setAttribute('max', res.event.users.length);
+		} else {
+			showMessage('error', res.message);
 		}
 	};
 
@@ -681,6 +637,9 @@ const handleLogin = (e) => {
 const clearAvailability = (e) => {
 	const state = eventState.getState();
 	const us = userState.getState();
+
+	if (!us.name) return;
+
 	handleRequest(
 		`/api/v1/events/updateAvailability/${state.url}`,
 		'PATCH',
@@ -697,7 +656,8 @@ const clearAvailability = (e) => {
 				applyFilters();
 				showMessage('info', 'Availability cleared');
 			} else {
-				showMessage('error', res.message);
+				// showMessage('error', res.message);
+				showMessage('error', errorMessage);
 				userState.setState(us);
 			}
 		}
@@ -705,6 +665,9 @@ const clearAvailability = (e) => {
 };
 
 const allAvailability = () => {
+	const oldUser = userState.getState();
+	if (!oldUser.name) return;
+
 	const toSend = [];
 	const availability = getElementArray(myCalendarArea, '.time-cell');
 	availability.forEach((a) => {
@@ -713,7 +676,6 @@ const allAvailability = () => {
 	});
 	//add API connection here
 	const es = eventState.getState();
-	const oldUser = userState.getState();
 	userState.setState((prev) => {
 		return {
 			...prev,
@@ -723,7 +685,7 @@ const allAvailability = () => {
 	const str = `/api/v1/events/updateAvailability/${es.url}`;
 	const handler = (res) => {
 		if (res.status !== 'success') {
-			showMessage('error', res.message);
+			showMessage('error', errorMessage);
 			userState.setState(oldUser);
 		} else {
 			eventState.setState(res.data);
@@ -749,7 +711,7 @@ const changeTimeZone = (e) => {
 			generateCalendar(teamCalendarArea, res.event);
 			populateTeamCalendar(event);
 		} else {
-			showMessage('error', res.message);
+			showMessage('error', errorMessage);
 			const opts = getElementArray(e.target, 'option');
 			opts.some((o, i) => {
 				if (o.value === user.timeZone) e.target.selectedIndex = i;
@@ -1034,19 +996,11 @@ document.addEventListener('DOMContentLoaded', () => {
 		const cont = createElement('.d-flex.flex-row.w-100.my-1');
 		const sp1 = createElement('.bold.me-2.my-auto');
 		const sp2 = createElement('.my-auto');
-		const btn1 = createElement('button.btn.btn-primary.btn-sm.mx-3');
-		const btn2 = createElement('button.btn.btn-primary.btn-sm.mx-3');
 		sp1.innerHTML = 'Logged in as:';
 		sp2.innerHTML = state.name;
-		btn1.innerHTML = 'Select All Availability';
-		btn2.innerHTML = 'Clear Availability';
-		btn1.addEventListener('click', allAvailability);
-		btn2.addEventListener('click', clearAvailability);
 		loginContainer.appendChild(cont);
 		cont.appendChild(sp1);
 		cont.appendChild(sp2);
-		cont.appendChild(btn1);
-		cont.appendChild(btn2);
 
 		getElementArray(tzSelect, 'option').some((o, i) => {
 			if (o.value === state.timeZone) {
@@ -1054,6 +1008,15 @@ document.addEventListener('DOMContentLoaded', () => {
 				return true;
 			}
 		});
+	});
+	userState.addWatcher(calendarHeading, (e) => {
+		if (!e.detail.name)
+			e.target.innerHTML = 'You must log in to see your calendar.';
+		else e.target.innerHTML = 'Select your available times:';
+	});
+	userState.addWatcher(selectClear, (e) => {
+		if (e.detail.name) e.target.classList.remove('d-none');
+		else e.target.classList.add('d-none');
 	});
 	const us = userState.getState();
 
@@ -1113,4 +1076,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	personCount.addEventListener('change', applyFilters);
 
 	if (login) login.addEventListener('click', handleLogin);
+	selectAllAvail.addEventListener('click', allAvailability);
+	clearAvail.addEventListener('click', clearAvailability);
 });

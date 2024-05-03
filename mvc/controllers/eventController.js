@@ -187,7 +187,11 @@ exports.login = catchAsync(async (req, res, next) => {
 
 	//if the user doesn't exist, create it and add it to the event's user list and log them in
 	if (!user) {
-		if (!timeZones.includes(timeZone))
+		if (
+			!timeZones.includes(timeZone) &&
+			event.eventType !== 'date' &&
+			event.eventType !== 'weekday'
+		)
 			return next(new AppError('Invalid time zone specified.', 400));
 		const newId =
 			event.users.length === 0 ? 0 : event.users.slice(-1).pop().id + 1;
@@ -349,7 +353,6 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 		);
 
 	let existing;
-	const allEvents = await Event.find();
 	do {
 		req.body.url = randomString(16);
 		existing = await Event.findOne({ url: req.body.url });
@@ -384,7 +387,7 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 					? p
 					: new Date(c.timeString);
 			});
-		} else if (req.body.eventType === 'date-time') {
+		} else {
 			latestDate = req.body.dates.reduce((p, c) => {
 				return new Date(p) > new Date(c) ? p : c;
 			});
@@ -409,11 +412,15 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 
 		let datesValid = true;
 		let laterDate = false;
+		const today = moment
+			.tz(new Date(), req.body.timeZone)
+			.startOf('day')
+			.format()
+			.split('T')[0];
 		req.body.dates = req.body.dates.map((d) => {
 			const pd = Date.parse(d);
-			const now = moment(new Date()).tz('GMT').startOf('day');
 			if (!pd) datesValid = false;
-			else if (new Date(pd) >= now) laterDate = true;
+			else if (new Date(pd) >= new Date(today)) laterDate = true;
 			return pd;
 		});
 		if (!datesValid) return next(new AppError('Invalid date specified', 400));

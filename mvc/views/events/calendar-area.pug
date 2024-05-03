@@ -8,6 +8,11 @@
         .tab-pane.fade.show.active#my-calendar-pane(role="tabpanel" aria-labelledby="my-calendar-tab" tabindex="0")
             .tab-wrapper#calendar-wrapper
                 #my-calendar.calendar
+                    #calendar-heading.mb-1
+                    #select-clear-container.d-flex.flex-row.mb-3.d-none
+                        button#select-all.btn.btn-sm.btn-primary.me-2 Select all 
+                        button#clear-availability.btn.btn-sm.btn-primary Clear all
+                    #calendar-container
         .tab-pane.fade#team-calendar-pane(role="tabpanel" aria-labelledby="team-calendar-tab" tabindex="0") 
             .tab-wrapper.overflow-hidden
                 include components/filterArea

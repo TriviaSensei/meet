@@ -3,6 +3,7 @@ import { StateHandler } from '../utils/stateHandler.js';
 import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
+import { dows, months, colors, testTimeZones } from './params.js';
 
 const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
@@ -17,6 +18,10 @@ const userFilterList = document.querySelector('#user-filter-list');
 const personCount = document.querySelector('#person-count');
 const personButton = document.querySelector('#person-button');
 const filterButton = document.querySelector('#filter-button');
+const calendarHeading = document.querySelector('#calendar-heading');
+const selectClear = document.querySelector('#select-clear-container');
+const selectAllAvail = document.querySelector('#select-all');
+const clearAvail = document.querySelector('#clear-availability');
 
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -24,57 +29,6 @@ const tooltipTriggerList = document.querySelectorAll(
 const tooltipList = [...tooltipTriggerList].map(
 	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
 );
-
-const dows = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-const months = [
-	'Jan',
-	'Feb',
-	'Mar',
-	'Apr',
-	'May',
-	'Jun',
-	'Jul',
-	'Aug',
-	'Sep',
-	'Oct',
-	'Nov',
-	'Dec',
-];
-
-const colors = [
-	'DDDDDD',
-	'D4D7DD',
-	'CCD0DD',
-	'C3CADE',
-	'BAC3DE',
-	'B2BDDE',
-	'A9B6DE',
-	'A0B0DE',
-	'98A9DE',
-	'8FA3DF',
-	'869CDF',
-	'7E96DF',
-	'758FDF',
-	'6C89DF',
-	'6482DF',
-	'5B7CE0',
-	'5275E0',
-	'4A6FE0',
-	'4168E0',
-	'3862E0',
-	'305BE0',
-	'2755E1',
-	'1E4EE1',
-	'1648E1',
-	'0D41E1',
-];
-
-const testTimeZones = [
-	'Europe/Lisbon',
-	'America/New_York',
-	'America/Los_Angeles',
-	'America/Halifax',
-];
 
 let eventState, userState;
 
@@ -212,6 +166,9 @@ const handleLogin = (e) => {
 const clearAvailability = (e) => {
 	const state = eventState.getState();
 	const us = userState.getState();
+
+	if (!us.name) return;
+
 	handleRequest(
 		`/api/v1/events/updateAvailability/${state.url}`,
 		'PATCH',
@@ -224,6 +181,8 @@ const clearAvailability = (e) => {
 						availability: [],
 					};
 				});
+				eventState.setState(res.data);
+				applyFilters();
 				showMessage('info', 'Availability cleared');
 			} else {
 				showMessage('error', res.message);
@@ -231,6 +190,43 @@ const clearAvailability = (e) => {
 			}
 		}
 	);
+};
+
+const allAvailability = () => {
+	const oldUser = userState.getState();
+	if (!oldUser.name) return;
+
+	const toSend = [];
+	// const availability = getElementArray(myCalendarArea, '.time-cell');
+	// availability.forEach((a) => {
+	// 	a.classList.add('selected');
+	// 	toSend.push(a.getAttribute('data-dt'));
+	// });
+	// //add API connection here
+	// const es = eventState.getState();
+	// userState.setState((prev) => {
+	// 	return {
+	// 		...prev,
+	// 		availability: toSend,
+	// 	};
+	// });
+	// const str = `/api/v1/events/updateAvailability/${es.url}`;
+	// const handler = (res) => {
+	// 	if (res.status !== 'success') {
+	// 		showMessage('error', res.message);
+	// 		userState.setState(oldUser);
+	// 	} else {
+	// 		eventState.setState(res.data);
+	// 	}
+	// };
+	// handleRequest(
+	// 	str,
+	// 	'PATCH',
+	// 	{
+	// 		availability: toSend,
+	// 	},
+	// 	handler
+	// );
 };
 
 const changeTimeZone = (e) => {
@@ -462,6 +458,15 @@ document.addEventListener('DOMContentLoaded', () => {
 			}
 		});
 	});
+	userState.addWatcher(calendarHeading, (e) => {
+		if (!e.detail.name)
+			e.target.innerHTML = 'You must log in to see your calendar.';
+		else e.target.innerHTML = 'Select your available times:';
+	});
+	userState.addWatcher(selectClear, (e) => {
+		if (e.detail.name) e.target.classList.remove('d-none');
+		else e.target.classList.add('d-none');
+	});
 	const us = userState.getState();
 
 	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
@@ -511,4 +516,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	personCount.addEventListener('change', applyFilters);
 
 	if (login) login.addEventListener('click', handleLogin);
+	selectAllAvail.addEventListener('click', allAvailability);
+	clearAvail.addEventListener('click', clearAvailability);
 });

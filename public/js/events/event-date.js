@@ -3,14 +3,13 @@ import { StateHandler } from '../utils/stateHandler.js';
 import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
-import { dows, dowNames, months, colors, testTimeZones } from './params.js';
+import { dows, dowNames, months, colors } from './params.js';
 
 const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
 const userName = document.querySelector('#user-name');
 const password = document.querySelector('#password');
-const tzSelect = document.querySelector('#timezone');
-const myCalendarArea = document.querySelector('#my-calendar');
+const myCalendarArea = document.querySelector('#calendar-container');
 const teamCalendarArea = document.querySelector('#team-calendar');
 const legendBar = document.querySelector('#legend-bar');
 const copyButton = document.querySelector('#copy-url');
@@ -48,7 +47,7 @@ const updateAvailability = (e) => {
 	const handler = (res) => {
 		if (res.status !== 'success') {
 			showMessage('error', errorMessage);
-			us.setState((prev) => {
+			userState.setState((prev) => {
 				return {
 					...prev,
 					availability: checked,
@@ -90,187 +89,120 @@ const createOption = (str, dataset) => {
 };
 
 const generateCalendar = (area, event) => {
-	let container = area.querySelector('.cal-inner');
-	if (!container) {
-		container = createElement('.cal-inner.d-flex.flex-column.w-100.h-100');
-		area.appendChild(container);
-	}
-	const userTZ = tzSelect.value;
+	area.innerHTML = '';
 	const user = userState.getState();
+	if (!user.name) return;
 	const localOffset = new Date().getTimezoneOffset();
 
 	const candidates = event.dates
 		.map((d) => {
-			return moment.tz(d, event.timeZone).tz(userTZ).format();
+			return moment.tz(d, event.timeZone).format();
 		})
 		.sort((a, b) => {
 			return new Date(a) - new Date(b);
 		});
-
-	//set the header text if needed
-	if (area === myCalendarArea) {
-		if (!user.name) {
-			container.innerHTML = '';
-			return;
-		}
-	}
-
-	//set the date slots
 	candidates.forEach((c) => {
-		const arr = c.split('T');
+		const dt = moment.tz(c, event.timeZone).tz('GMT').format();
+		const arr = dt.split('T');
 		const date = arr[0];
 		let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
 		if (!dateSlot) {
 			dateSlot = createElement('.date-slot');
 			dateSlot.setAttribute('data-date', date);
-			if (area === teamCalendarArea) dateSlot.setAttribute('data-count', 0);
-			container.appendChild(dateSlot);
-			const dateHeader = createElement('.date-header');
+			dateSlot.setAttribute('data-dt', dt);
 			const dowIndex = new Date(
-				Date.parse(new Date(c)) + localOffset * 60000
+				Date.parse(new Date(dt)) + localOffset * 60000
 			).getDay();
 			const dow =
-				event.eventType === 'date-list' ? dows[dowIndex] : dowNames[dowIndex];
-			const m = months[Number(date.split('-')[1] - 1)];
+				event.eventType === 'date' ? dows[dowIndex] : dowNames[dowIndex];
 			const dateArr = date.split('-');
-			dateHeader.innerHTML =
-				event.eventType === 'date-list'
-					? `${dow} ${m} ${dateArr[2]}, ${dateArr[0]}`
-					: dow;
-			dateSlot.appendChild(dateHeader);
+			const mon = months[Number(dateArr[1]) - 1];
+			dateSlot.setAttribute(
+				'data-str',
+				event.eventType === 'date'
+					? `${dow} ${dateArr[2]} ${mon} ${dateArr[0]}`
+					: dow
+			);
+			area.appendChild(dateSlot);
 		}
 	});
-
-	//set the time slots
 	if (area === myCalendarArea) {
-		candidates.forEach((c) => {
-			const arr = c.split('T');
-			const date = arr[0];
-			const timeArr = arr[1]
-				.split('-')[0]
-				.split(':')
-				.map((n) => Number(n));
-			let dateSlot = container.querySelector(`.date-slot[data-date="${date}"]`);
-			const timeStr = `${
-				timeArr[0] % 12 === 0
-					? 12
-					: timeArr[0] % 12 < 10
-					? `0${timeArr[0] % 12}`
-					: timeArr[0]
-			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
-				timeArr[0] >= 12 ? 'PM' : 'AM'
-			}`;
-			const timeSlot = container.querySelector(`.time-option[value="${c}"]`);
-			if (!timeSlot) {
-				const newTime = createOption(timeStr, {
-					'data-date': date,
-					'data-time': timeStr,
-					value: c,
-					id: `cb-${Date.parse(new Date(c))}`,
-					checked: user.availability.includes(c),
-				});
-				dateSlot.appendChild(newTime);
-			}
+		getElementArray(area, '.date-slot').forEach((ds) => {
+			const dt = ds.getAttribute('data-dt');
+			const opt = createOption(ds.getAttribute('data-str'), {
+				value: dt,
+				id: `date-${ds.getAttribute('data-date')}`,
+				checked: user.availability.includes(dt),
+			});
+			ds.appendChild(opt);
 		});
 	} else {
-		candidates.forEach((c) => {
-			const arr = c.split('T');
-			const date = arr[0];
-			const dateSlot = container.querySelector(
-				`.date-slot[data-date="${date}"]`
-			);
-			const timeArr = arr[1]
-				.split('-')[0]
-				.split(':')
-				.map((n) => Number(n));
-			const timeStr = `${
-				timeArr[0] % 12 === 0
-					? 12
-					: timeArr[0] % 12 < 10
-					? `0${timeArr[0] % 12}`
-					: timeArr[0]
-			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
-				timeArr[0] >= 12 ? 'PM' : 'AM'
-			}`;
-			let barContainer = container.querySelector(
-				`.bar-container[data-value="${c}"]`
-			);
-			if (!barContainer) {
-				barContainer = createElement('.bar-container');
-				barContainer.setAttribute('data-value', c);
-				const lbl = createElement('.bar-label');
-				lbl.innerHTML = timeStr;
-				barContainer.appendChild(lbl);
-				const bar = createElement('.bar');
-				const barInner = createElement('.bar-inner');
-				barInner.setAttribute('data-date', date);
-				barInner.setAttribute('data-time', timeStr);
-				barInner.setAttribute(
-					'data-count',
-					barContainer.getAttribute('data-count')
-				);
-				barInner.setAttribute('data-bs-toggle', 'tooltip');
-				barInner.setAttribute('data-bs-html', 'true');
-				bar.appendChild(barInner);
-				barContainer.appendChild(bar);
-				dateSlot.appendChild(barContainer);
-			}
-			barContainer.setAttribute('data-count', 0);
+		const dateSlots = getElementArray(area, '.date-slot');
+		dateSlots.forEach((ds) => {
+			ds.removeAttribute('data-count');
 		});
 		event.users.forEach((u) => {
 			u.availability.forEach((a) => {
-				const v = moment
-					.tz(a, u.timeZone)
-					.tz(user.timeZone || tzSelect.value)
-					.format();
-				const bc = area.querySelector(`.bar-container[data-value="${v}"]`);
-				if (!bc) return;
-				bc.setAttribute(
-					'data-count',
-					Number(bc.getAttribute('data-count')) + 1 || 1
-				);
-				const list = bc.getAttribute('data-users');
-				if (!list) bc.setAttribute('data-users', u.name);
-				else if (list.indexOf(u.name) < 0)
-					bc.setAttribute('data-users', `${list},${u.name}`);
+				const ds = area.querySelector(`.date-slot[data-dt="${a}"]`);
+				if (!ds) return;
+				if (!ds.getAttribute('data-count')) ds.setAttribute('data-count', 1);
+				else
+					ds.setAttribute(
+						'data-count',
+						Number(ds.getAttribute('data-count')) + 1
+					);
+				if (!ds.getAttribute('data-users'))
+					ds.setAttribute('data-users', u.name);
+				else
+					ds.setAttribute(
+						'data-users',
+						`${ds.getAttribute('data-users')},${u.name}`
+					);
 			});
 		});
-		getElementArray(container, '.date-slot').forEach((ds) => {
-			let count = 0;
-			getElementArray(ds, '.bar-container').forEach((bc) => {
-				count = count + (Number(bc.getAttribute('data-count')) || 0);
-			});
-			ds.setAttribute('data-count', count);
-		});
-		getElementArray(container, '.bar-container').forEach((b) => {
-			const inner = b.querySelector('.bar-inner');
-			if (b.getAttribute('data-count') !== '0') {
-				inner.setAttribute(
+		dateSlots.forEach((ds) => {
+			const barContainer = createElement('.bar-container');
+			barContainer.setAttribute('data-value', ds.getAttribute('data-dt'));
+			const lbl = createElement('.bar-label');
+			lbl.innerHTML = ds.getAttribute('data-str');
+			barContainer.appendChild(lbl);
+			const bar = createElement('.bar');
+			const barInner = createElement('.bar-inner');
+			barInner.setAttribute('data-date', ds.getAttribute('data-date'));
+			barInner.setAttribute('data-count', ds.getAttribute('data-count') || 0);
+			barInner.setAttribute('data-bs-toggle', 'tooltip');
+			barInner.setAttribute('data-bs-html', 'true');
+			if (
+				ds.getAttribute('data-count') &&
+				ds.getAttribute('data-count') !== '0'
+			) {
+				barInner.setAttribute(
 					'data-bs-title',
-					`${inner.getAttribute('data-date')}<br>${inner.getAttribute(
-						'data-time'
-					)}<br><u>${b.getAttribute('data-count')} available</u><br>${b
+					`${ds.getAttribute('data-str')}<br><u>${ds.getAttribute(
+						'data-count'
+					)} available</u><br>${ds
 						.getAttribute('data-users')
 						.split(',')
 						.join('<br>')}`
 				);
-				new bootstrap.Tooltip(inner);
-				inner.setAttribute('data-count', b.getAttribute('data-count'));
+				new bootstrap.Tooltip(barInner);
 			}
-			inner.removeAttribute('style');
-			inner.innerHTML = b.getAttribute('data-count');
-			const bar = b.querySelector('.bar');
+			barInner.innerHTML = barInner.getAttribute('data-count');
+			bar.appendChild(barInner);
+			barContainer.appendChild(bar);
+			ds.appendChild(barContainer);
 			const innerWidth = 40;
 			const diff = bar.getBoundingClientRect().width - innerWidth;
-			const ct = Number(b.getAttribute('data-count'));
+			const ct = Number(barInner.getAttribute('data-count'));
 			const pct = ct / event.users.length;
 			const color = colorMap[ct].color;
 			if (ct > 0)
-				inner.setAttribute(
+				barInner.setAttribute(
 					'style',
 					`background-color:#${color};width:${innerWidth + pct * diff}px;`
 				);
 		});
+		applyFilters();
 	}
 };
 
@@ -284,7 +216,7 @@ const adjustTabSize = () => {
 	const mh = totalHeight - headerHeight;
 	const tc = document.querySelector('.body-section');
 	tc.setAttribute('style', `max-height:calc(${mh}px - 0.5rem);`);
-	setCalendarSize(null);
+	setCalendarSize();
 };
 
 const handleLogin = (e) => {
@@ -307,7 +239,7 @@ const handleLogin = (e) => {
 			if (!user) return showMessage('error', 'User not found');
 			showMessage('info', `Logged in as ${user.name}`);
 			userState.setState(user);
-
+			eventState.setState(res.event);
 			//add the new user to the checkbox filters
 			const checkRow = userFilterList.querySelector(`#person-${user.id}`);
 			if (!checkRow) {
@@ -328,7 +260,11 @@ const handleLogin = (e) => {
 			}
 			//set the maxvalue of the personCount filter
 			personCount.setAttribute('max', res.event.users.length);
+
 			generateCalendar(myCalendarArea, res.event);
+			generateCalendar(teamCalendarArea, res.event);
+		} else {
+			showMessage('error', res.message);
 		}
 	};
 
@@ -338,7 +274,6 @@ const handleLogin = (e) => {
 		{
 			name: user,
 			password: pw,
-			timeZone: tzSelect.value,
 		},
 		handler
 	);
@@ -367,46 +302,21 @@ const clearAvailability = (e) => {
 						availability: [],
 					};
 				});
+
+				getElementArray(
+					myCalendarArea,
+					'input[type="checkbox"]:checked'
+				).forEach((cb) => {
+					cb.checked = false;
+				});
 				showMessage('info', 'Availability cleared');
-				getElementArray(myCalendarArea, 'input[type="checkbox"]').forEach(
-					(cb) => {
-						cb.checked = false;
-					}
-				);
+				eventState.setState(res.data);
 				generateCalendar(teamCalendarArea, res.data);
 			} else {
-				showMessage('error', errorMessage);
+				showMessage('error', res.message);
 				userState.setState(us);
 			}
 		}
-	);
-};
-
-const changeTimeZone = (e) => {
-	const user = userState.getState();
-	const event = eventState.getState();
-	const handler = (res) => {
-		if (res.status === 'success') {
-			userState.setState(res.user);
-			myCalendarArea.innerHTML = '';
-			teamCalendarArea.innerHTML = '';
-			generateCalendar(myCalendarArea, res.event);
-			generateCalendar(teamCalendarArea, res.event);
-			populateTeamCalendar(event);
-		} else {
-			showMessage('error', errorMessage);
-			const opts = getElementArray(e.target, 'option');
-			opts.some((o, i) => {
-				if (o.value === user.timeZone) e.target.selectedIndex = i;
-				return true;
-			});
-		}
-	};
-	handleRequest(
-		`/api/v1/events/updateTimeZone/${event.url}`,
-		'PATCH',
-		{ timeZone: e.target.value },
-		handler
 	);
 };
 
@@ -420,7 +330,7 @@ const drawLegend = (e) => {
 	labels[0].innerHTML = `0/${userCount}`;
 	labels[1].innerHTML = `${userCount}/${userCount} available`;
 
-	legendBar.innerHTML = '';
+	e.target.innerHTML = '';
 	const interval = Math.max(1, (colors.length - 1) / (boxCount - 1));
 
 	for (var i = 0; i < boxCount; i++) {
@@ -428,7 +338,7 @@ const drawLegend = (e) => {
 		const x = Math.round(i * interval);
 		newBox.setAttribute('style', `background-color:#${colors[x]}`);
 
-		legendBar.appendChild(newBox);
+		e.target.appendChild(newBox);
 
 		colorMap.push({
 			count: (i / (boxCount - 1)) * userCount,
@@ -453,11 +363,16 @@ const setCalendarSize = (e) => {
 		const rect = c.getBoundingClientRect();
 		if (rect) usedHeight = usedHeight + rect.height;
 	});
+	teamCalendarArea.setAttribute(
+		'style',
+		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
+	);
 
 	teamCalendarArea.setAttribute(
 		'style',
 		`max-height:calc(${mh - usedHeight}px - 0.5rem);`
 	);
+
 	if (eventState && (!e || e.target === tct))
 		generateCalendar(teamCalendarArea, eventState.getState());
 };
@@ -495,6 +410,8 @@ const removeTooltip = (el) => {
 };
 
 const applyFilters = () => {
+	const state = eventState.getState();
+
 	const pcf = document.querySelector('#person-count-filter-text');
 	const pf = document.querySelector('#person-filter-text');
 
@@ -513,46 +430,6 @@ const applyFilters = () => {
 		anyAll = 'all';
 		const allRadio = document.querySelector('#user-filter-all');
 		if (allRadio) allRadio.checked = true;
-	}
-
-	//remove bars with not enough users
-	getElementArray(teamCalendarArea, '.bar-container').forEach((bc) => {
-		const n = Number(bc.getAttribute('data-count'));
-
-		if (n < minVal) bc.classList.add('hide');
-		else bc.classList.remove('hide');
-	});
-
-	//remove bars with not the right users, if necessary
-	if (checkedUsers.length > 0) {
-		if (anyAll === 'all') {
-			getElementArray(
-				teamCalendarArea,
-				'.bar-container[data-users]:not(.hide)'
-			).forEach((bc) => {
-				const availableUsers = bc.getAttribute('data-users').split(',');
-				if (
-					checkedUsers.some((u) => {
-						return !availableUsers.includes(u);
-					})
-				)
-					bc.classList.add('hide');
-			});
-		} else {
-			getElementArray(
-				teamCalendarArea,
-				'.bar-container[data-users]:not(.hide)'
-			).forEach((bc) => {
-				const availableUsers = bc.getAttribute('data-users').split(',');
-				if (
-					checkedUsers.every((u) => {
-						return !availableUsers.includes(u);
-					})
-				) {
-					bc.classList.add('hide');
-				}
-			});
-		}
 	}
 
 	//filter text
@@ -596,9 +473,39 @@ const applyFilters = () => {
 			}`;
 		else pf.innerHTML = '';
 	}
-};
 
-const populateTeamCalendar = (ev) => {};
+	//remove the bars with too few available users
+	getElementArray(teamCalendarArea, '.date-slot').forEach((ds) => {
+		const ct = ds.getAttribute('data-count');
+		if (!ct || Number(ct) < minVal) {
+			ds.classList.add('d-none');
+			return;
+		} else ds.classList.remove('d-none');
+
+		//of the bars that have enough people, remove the ones without the right users
+		const barUsers = ds.getAttribute('data-users')?.split(',');
+		if (!barUsers) {
+			ds.classList.add('d-none');
+			return;
+		} else if (checkedUsers.length === 0) return;
+
+		if (anyAll === 'any') {
+			if (
+				!barUsers.some((u) => {
+					return checkedUsers.includes(u);
+				})
+			)
+				ds.classList.add('d-none');
+		} else if (anyAll === 'all') {
+			if (
+				checkedUsers.some((u) => {
+					return !barUsers.includes(u);
+				})
+			)
+				ds.classList.add('d-none');
+		}
+	});
+};
 
 document.addEventListener('DOMContentLoaded', () => {
 	adjustTabSize();
@@ -610,71 +517,41 @@ document.addEventListener('DOMContentLoaded', () => {
 			id: null,
 			name: '',
 			availability: [],
-			timeZone: '',
 		});
 	else userState = new StateHandler(JSON.parse(userDataStr));
 	userState.addWatcher(null, (state) => {
 		if (!state.name) return;
 		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-1');
-		const sp1 = createElement('.bold.me-2.my-auto');
-		const sp2 = createElement('.my-auto');
+		const cont = createElement('.d-flex.flex-row.w-100.my-2');
+		const sp1 = createElement('span.bold.me-2');
+		const sp2 = createElement('span');
 		sp1.innerHTML = 'Logged in as:';
 		sp2.innerHTML = state.name;
 		loginContainer.appendChild(cont);
 		cont.appendChild(sp1);
 		cont.appendChild(sp2);
-		getElementArray(tzSelect, 'option').some((o, i) => {
-			if (o.value === state.timeZone) {
-				tzSelect.selectedIndex = i;
-				return true;
-			}
-		});
 	});
-	const us = userState.getState();
-
-	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
-	dataArea.remove();
-	const userTZ = us && us.timeZone ? us.timeZone : moment.tz.guess();
-	const allTimeZones = moment.tz.names();
-	allTimeZones.forEach((tz) => {
-		const op = createElement('option');
-		op.setAttribute('value', tz);
-		op.innerHTML = tz;
-		if (
-			!testTimeZones ||
-			testTimeZones.length === 0 ||
-			testTimeZones.includes(tz)
-		)
-			tzSelect.appendChild(op);
-		if (tz === userTZ) op.setAttribute('selected', true);
-	});
-
 	userState.addWatcher(calendarHeading, (e) => {
 		if (!e.detail.name)
 			e.target.innerHTML = 'You must log in to see your calendar.';
-		else e.target.innerHTML = 'Select your available times:';
+		else e.target.innerHTML = 'Select your available dates:';
 	});
 	userState.addWatcher(selectClear, (e) => {
 		if (e.detail.name) e.target.classList.remove('d-none');
 		else e.target.classList.add('d-none');
 	});
 
+	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
+	dataArea.remove();
 	if (eventData) {
 		eventState = new StateHandler(eventData);
 	}
-
 	eventState.addWatcher(legendBar, drawLegend);
-	eventState.addWatcher(null, (state) => {
-		if (state) populateTeamCalendar(state);
-	});
 
 	if (eventData) {
 		generateCalendar(myCalendarArea, eventData);
 		generateCalendar(teamCalendarArea, eventData);
 	}
-
-	if (eventData) populateTeamCalendar(eventData);
 
 	document.addEventListener('shown.bs.collapse', setCalendarSize);
 	document.addEventListener('hidden.bs.collapse', setCalendarSize);
@@ -694,7 +571,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	personCount.addEventListener('change', applyFilters);
 
 	if (login) login.addEventListener('click', handleLogin);
-	tzSelect.addEventListener('change', changeTimeZone);
 	selectAllAvail.addEventListener('click', allAvailability);
 	clearAvail.addEventListener('click', clearAvailability);
 });
