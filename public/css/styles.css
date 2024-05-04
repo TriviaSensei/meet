@@ -130,9 +130,20 @@ select > option {
 	height: 100%;
 }
 
-.header-logo {
+.help-button {
+	all: unset;
+	padding: 0;
 	margin: auto 10px;
+	height: 100%;
+}
+
+.header-logo {
 	height: 80%;
+	cursor: pointer;
+}
+
+.header-logo:hover path {
+	fill: var(--today);
 }
 
 .header-logo-text {
@@ -245,6 +256,7 @@ input[type='radio']:not(:checked) + label {
 
 div[data-bs-toggle='tooltip'] svg {
 	margin-bottom: 0.25rem;
+	margin-left: 0.25rem;
 }
 
 .time-container {
@@ -273,4 +285,22 @@ div[data-bs-toggle='tooltip'] svg {
 	align-items: center;
 	padding: 3px;
 	margin: 3px;
+}
+
+.to-top {
+	position: sticky;
+	top: 100%;
+	left: 100%;
+	transform: translate(0, -100%);
+	display: flex;
+	justify-content: flex-end;
+}
+
+.to-top > div {
+	opacity: 0.5;
+	margin-right: 10px;
+}
+
+.to-top > div:hover {
+	opacity: 1;
 }

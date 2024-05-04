@@ -8,6 +8,6 @@ const router = express.Router();
 // router.use(viewController.handleAlert);
 
 router.get('/', viewController.getHome);
+router.get('/help', viewController.getHelp);
 router.get('/:id', eventController.isLoggedIn, viewController.getEvent);
-
 module.exports = router;

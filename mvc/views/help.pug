@@ -1,0 +1,53 @@
+extends _base
+
+block styles 
+    link(rel='stylesheet' href='/css/help.css')
+    
+block content 
+    .app-container.d-flex.flex-column
+        include components/header
+        section.body-section.d-flex.flex-column.align-items-center.mb-2.f-1.overflow-hidden
+            .w-100.h-100.overflow-auto.d-flex.flex-column
+                .to-top 
+                    .link-container
+                        a(href="#top") Top
+                a(name="top")
+                h1.m-auto.mb-2 Meet You @ Help
+                p Welcome to Meet-You-@, your one-stop shop for finding a time to meet with your team or group! Whether you're trying to plan a one-off event, or trying to figure out a time or day to meet on a recurring basis, this tool can help you out.
+                section#contents.w-100.text-start
+                    ol(type="I")
+                        li
+                            a(href="#create") Creating an event
+                            ul
+                                li
+                                    a(href="#types") Event type settings 
+                                    ol(type="A")
+                                        li
+                                            a(href="#dates") Dates
+                                        li 
+                                            a(href="#times") Times
+                        li 
+                            a(href="#share") Sharing an event
+                        li 
+                            a(href="#availability") Updating availability
+                        li 
+                            a(href="#view") Viewing results
+                section#help.w-100.text-start 
+                    a(hame="create")
+                    h3 Creating an event 
+                    p Events are created on the #[a(href="/") home page]. Depending on the type of event, you must specify a few pieces of information. For all events, an event name is required. Optionally, you may provide a description for your team.
+                    img(src="/img/help/01.png")
+                    p Event name and description
+                    a(name="types")
+                    h4 Types of events
+                    p Meet-You-@ offers two options for specifying event dates, and three options for specifying event times, for a total of 6 different event configurations.
+                    a(name="dates")
+                    h5 Event Dates 
+                    p There are two options for event dates. You may specify specific dates for your event for a one-off event, such as a one-time team meeting, or a party. For a recurring weekly event, such as a club meeting or practice, you may select days of the week instead of specific dates.
+                    a(name="times")
+                    h5 Event Times 
+                    p There are three options for event times. For events that can start at any time within a particular window, choose the "Continuous" option. Users will specify all time windows during which they are available, in 15-minute blocks (i.e. "When are you available during these days?"). For events with specific discrete choices for start times (i.e. "Here is a list of possible start times. Choose the ones where you're available."), choose the "List" option. If you only wish to poll about dates, choose the "Dates only" option.
+                    img(src="/img/help/02.png")
+                    p Event type settings
+
+

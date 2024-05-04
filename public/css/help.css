@@ -1,0 +1,22 @@
+.body-section {
+	margin: auto 10px;
+	display: flex;
+	flex-direction: column;
+}
+
+.body-section section {
+	display: flex;
+	flex-direction: column;
+}
+
+img {
+	max-width: 50%;
+	margin: auto;
+	margin-bottom: 0.3rem;
+}
+
+.body-section img + p {
+	font-size: 0.7rem;
+	font-weight: bold;
+	text-align: center;
+}

@@ -31,3 +31,9 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 		user: res.locals.user,
 	});
 });
+
+exports.getHelp = (req, res, next) => {
+	res.status(200).render('help', {
+		title: 'Help',
+	});
+};
