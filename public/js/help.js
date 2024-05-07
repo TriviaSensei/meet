@@ -6,6 +6,9 @@ import { showMessage } from './utils/messages.js';
 document.addEventListener('DOMContentLoaded', () => {
 	submitButton.addEventListener('click', (e) => {
 		e.preventDefault();
+
+		e.target.disabled = true;
+
 		const [name, email, subject, message] = [
 			'name',
 			'email',
@@ -22,7 +25,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			message,
 		};
 
-		if (!name || !subject || !message)
+		if (!name || !email || !subject || !message)
 			return showMessage('error', `Please fill out all fields`);
 
 		const str = '/api/v1/contact';
