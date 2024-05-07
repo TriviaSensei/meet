@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
 		const handler = (res) => {
 			if (res.status === 'success') {
 				const rect = contactForm.getBoundingClientRect();
-				contactForm.setAttribute(`height: ${rect.height}px;`);
+				contactForm.setAttribute('style', `height: ${rect.height}px;`);
 				contactForm.innerHTML =
 					'Your message has been sent. I will respond to you as soon as possible.';
 				showMessage('info', 'Message sent.');
