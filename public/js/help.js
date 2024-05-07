@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded', () => {
 				showMessage('error', 'Something went wrong. Please try again later.');
 			}
 		};
-
+		showMessage('info', 'Sending...');
 		handleRequest(str, 'POST', body, handler);
 	});
 });
