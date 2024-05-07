@@ -22,7 +22,8 @@ document.addEventListener('DOMContentLoaded', () => {
 			message,
 		};
 
-		console.log(body);
+		if (!name || !subject || !message)
+			return showMessage('error', `Please fill out all fields`);
 
 		const str = '/api/v1/contact';
 		const handler = (res) => {
