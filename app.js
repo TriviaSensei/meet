@@ -65,6 +65,15 @@ app.use('/api/v1/events/getEvent', getLimiter);
 app.use('/api/v1/events/updateAvailability/:id', editLimiter);
 app.use('/api/v1/contact', emailLimiter);
 
+//body parser, read data from body to req.body
+app.use(express.json());
+
+app.use(cookieParser());
+app.use(compression());
+
+// 2) Routes
+app.use('/', viewRouter);
+app.use('/api/v1/events', eventRouter);
 app.post('/api/v1/contact', async (req, res) => {
 	const sgMail = require('@sendgrid/mail');
 	sgMail.setApiKey(process.env.SG_API_KEY);
@@ -76,6 +85,7 @@ app.post('/api/v1/contact', async (req, res) => {
 		subject: `Meet-You-@ message from ${req.body.name}: ${req.body.subject}`,
 		text: req.body.message,
 	};
+	console.log(msg);
 	try {
 		await sgMail.send(msg);
 	} catch (e) {
@@ -90,16 +100,6 @@ app.post('/api/v1/contact', async (req, res) => {
 		message: 'message sent.',
 	});
 });
-
-//body parser, read data from body to req.body
-app.use(express.json());
-
-app.use(cookieParser());
-app.use(compression());
-
-// 2) Routes
-app.use('/', viewRouter);
-app.use('/api/v1/events', eventRouter);
 // app.all('*', (req, res, next) => {
 //   //   //any argument passed to a next() function is assumed to be an error; skips all other middleware and goes to the error handler.
 //   next(new AppError(`Could not find ${req.originalUrl} on this server.`, 404));
