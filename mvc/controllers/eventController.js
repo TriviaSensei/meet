@@ -372,6 +372,28 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 		},
 	];
 
+	let maxLen, msgEnd;
+	if (req.body.eventType.split('-')[0] === 'date') {
+		if (req.body.eventType === 'date-list') {
+			maxLen = 100;
+			msgEnd = `candidate times`;
+		} else {
+			maxLen = 30;
+			if (req.body.eventType === 'date-time') msgEnd = `selected dates`;
+			else msgEnd = `candidate dates`;
+		}
+	} else {
+		maxLen = 100;
+		msgEnd = 'candidate times';
+	}
+	if (
+		(req.body.dates && req.body.dates.length > maxLen) ||
+		(req.body.timeList && req.body.timeList.length > maxLen)
+	)
+		return next(
+			new AppError(`You may have a maximum of ${maxLen} ${msgEnd}`, 400)
+		);
+
 	if (Array.isArray(req.body.times) && req.body.eventType === 'date-time') {
 		if (req.body.times[1] < req.body.times[0])
 			req.body.times[1] = req.body.times[1] + 1440;

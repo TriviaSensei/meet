@@ -1,5 +1,9 @@
 extends _base
 
+mixin imgCaption(img,caption)
+    img(src=`/img/help/${img}`)
+    p= caption
+
 block styles 
     link(rel='stylesheet' href='/css/help.css')
     
@@ -26,28 +30,159 @@ block content
                                             a(href="#dates") Dates
                                         li 
                                             a(href="#times") Times
+                                li 
+                                    a(href="#other-settings") Other settings 
+                                    ol(type="A")
+                                        li 
+                                            a(href="#event-dates") Event dates/days
+                                        li 
+                                            a(href="#time-window") Time window
+                                        li 
+                                            a(href="#time-options") Time options
+                                        li 
+                                            a(href="#time-zone") Time zone
+                                        li  
+                                            a(href="#login") Name/Password
                         li 
                             a(href="#share") Sharing an event
                         li 
+                            a(href="#user-login") Logging in
+                        li 
                             a(href="#availability") Updating availability
+                            ul 
+                                li
+                                    a(href="#continuous-time") Continuous time
+                                li 
+                                    a(href="#discrete") Time list/Date only
+                                li 
+                                    a(href="#user-timezone") Updating user time zone
                         li 
                             a(href="#view") Viewing results
+                            ul
+                                li
+                                    a(href="#filter") Filtering results
+                        li 
+                            a(href="#deletion") Deletion of events
+                        li
+                            a(href="#contact") About/Contact/Donate
                 section#help.w-100.text-start 
                     a(hame="create")
                     h3 Creating an event 
                     p Events are created on the #[a(href="/") home page]. Depending on the type of event, you must specify a few pieces of information. For all events, an event name is required. Optionally, you may provide a description for your team.
-                    img(src="/img/help/01.png")
-                    p Event name and description
+                    +imgCaption('01.png','Event name and description')
                     a(name="types")
-                    h4 Types of events
+                    h4 Event type settings
                     p Meet-You-@ offers two options for specifying event dates, and three options for specifying event times, for a total of 6 different event configurations.
+                    +imgCaption("02.png", 'Event type settings')
                     a(name="dates")
                     h5 Event Dates 
-                    p There are two options for event dates. You may specify specific dates for your event for a one-off event, such as a one-time team meeting, or a party. For a recurring weekly event, such as a club meeting or practice, you may select days of the week instead of specific dates.
+                    p There are two options for event dates. You may specify "Specific Dates" for your event for a one-off event, such as a one-time team meeting, or a party. For a recurring weekly event, such as a club meeting or practice, you may select "Days of Week" instead of specific dates.
                     a(name="times")
                     h5 Event Times 
                     p There are three options for event times. For events that can start at any time within a particular window, choose the "Continuous" option. Users will specify all time windows during which they are available, in 15-minute blocks (i.e. "When are you available during these days?"). For events with specific discrete choices for start times (i.e. "Here is a list of possible start times. Choose the ones where you're available."), choose the "List" option. If you only wish to poll about dates, choose the "Dates only" option.
-                    img(src="/img/help/02.png")
-                    p Event type settings
-
-
+                    a(name="other-settings")
+                    h4 Other settings 
+                    p This section details the other settings that your event may take on, including candidate dates and times, time windows, and time zones.
+                    a(name="event-dates")
+                    h5 Event dates/days
+                    p If the "Specific dates" option is selected, you will be able to select dates from a calendar. You must select at least one date that is today or later. To select dates, click and drag on the calendar. You may click the "<" and ">" buttons to change the month, or the "<<" and ">>" buttons to change the year. You may select multiple date ranges. That is, you are not required to select a single continuous range of days. For example, if your event can only occur on weekdays or weekends, Meet-You-@ will accommodate that. To see the interface for each event type, go to #[a(href="#availability") updating availability].
+                    +imgCaption("03.png",'Calendar with dates selected')
+                    +imgCaption("03b.png",'Calendar with multiple ranges selected')
+                    p If the "Days of week" option is selected, you will be able to select days of the week, rather than specific dates. This option is good for determining when recurring weekly events should happen. You are not required to select a continuous block of days.
+                    +imgCaption("04.png", 'Week with specific days selected')
+                    a(name="time-window")
+                    p Depending on the event date and time settings, you will have different options for event times.
+                    h5 Event time window 
+                    p If "Continous" is selected as the time setting, you will need to specify a window of time when your event may occur on each listed date.
+                    +imgCaption('05.png','Time window settings')
+                    ul
+                        li Each date will have the same time window, and a grid of 15-minute blocks within your specified window will be offered to your users. If you specify a time window of 9 AM to 5 PM, then your users will be able to specify their availability from 9 AM to 5 PM on each date that you have listed.
+                        li If you specify a time window where the end is the same or earlier than the beginning, then the app will assume that you want your time window to carry over to the next day. For example, if you have specified a date of January 1, and a time window of 5 PM - 1 AM, your users will be able to specify their availability for January 1 at 5 PM through January 2 at 1 AM (even though you did not specify January 2 as a date)
+                        li See #[a(href="#continuous-time") updating availability] for an example of what your users may see.
+                    a(name="time-options")
+                    h5 Event candidate times 
+                    p For "time list" events, you will have to specify the discrete times you wish to poll about on each day.
+                    ul 
+                        li Click and drag to select a date range. You may also click an individual day to toggle it.
+                        li Specify a candidate time and click add. The time will be added as a candidate on each selected day.
+                        li You may delete an individual candidate on a specific day by clicking the "X" icon on its tile 
+                        li You may deselect dates without removing candidate times on those dates
+                    p For example, suppose your meeting will be at either 7 PM or 8 PM sometime during the week of May 6-10, 2024. Suppose, also, that you have an extra option on May 10 of meeting at 9 PM, and that on May 7, your meeting space is not available at 7 PM, so you cannot have the meeting at that time. You may perform the following steps to create the correct set of options: 
+                    ol 
+                        li Select May 6-10 on the calendar.
+                        li Specify 7:00 PM on the time selector and click "Add". 7:00 PM will be added as an option on each day.
+                        li Specify 8:00 PM on the time selector and click "Add". Similarly, 8:00 PM will be added on each day.
+                        +imgCaption('06.png','Adding options for all selected dates')
+                        li Delete the 7 PM option on May 7 by clicking the "X" icon on its tile 
+                        +imgCaption('07.png','Deleting an individual option')
+                        li Deselect May 6-9 by clicking and dragging over the range. Alternatively, click "Clear Dates" and then reselect May 10.
+                        li Specify 9:00 PM on the time selector and click "Add". 9:00 PM will be added for May 10, only.
+                        +imgCaption('08.png','Adding 9 PM for May 10, only')
+                    h5 Time zones 
+                    p For most event types, you will specify a time zone. Meet-You-@ will attempt to guess your time zone when you open the page, but may not always guess right. The time zone is especially important if your team or group is not all in the same time zone. Each individual user can specify their own time zone, and Meet-You-@ will convert the times accordingly so that each user can work in their own local time.
+                    a(name="login")
+                    h5 Name and password 
+                    p Your username and password are event-specific. When you create an event, you specify your name and password for that event, and are automatically logged into that event upon successful creation. If you wish to edit your availability later, you will go to your #[a(href="#share") event's URL] and log in again. There is no length or complexity requirement for your password, so you can use something simple and easy-to-remember, if you wish. While your password is encrypted on the backend and will only be stored for #[a(href="#deletion") as long as your event exists in the database], we recommend you do NOT use a password that you are using elsewhere for other things.
+                    +imgCaption('09.png','Time zone and user login')
+                    a(name="share")
+                    h3 Sharing an event 
+                    p Upon creating an event, you will be taken to your event's page. Your next step will be to share the event with your team, which is a simple process. Click the "Copy URL" button near the top of the page. The URL for the event will be copied to your clipboard, and you can paste it into an e-mail, or into your preferred messaging app. This URL is the only way to access your event.
+                    +imgCaption('10.png','Copy URL button')
+                    a(name="user-login")
+                    h3 Logging in
+                    p When a user navigates to the shared link, they will have a chance to login. In order to update your availability for an event, you must first log in.
+                    +imgCaption('11.png','User login')
+                    p This login form actually serves two functions - for existing users to login, and for new users (to this event) to add themselves to the list and log in. If a new user to this event logs in, they will automatically be added to the list of users for this event and may then update their availability. Remember, again, that users and passwords are event-specific, so a user named "Bob" might exist for multiple events without any conflicts, but a single event can only have one user named "Bob". If someone else attempts to login to that event as "Bob", and types the wrong password, the login will be rejected. 
+                    a(name="availability")
+                    h3 Updating availability
+                    p After logging in, your team may update availability as needed. The process is slightly different for different event types.
+                    a(name="continuous-time")
+                    h4 Continuous time events 
+                    p For continuous time events, an availability grid is given to each user. Users may click and drag to highlight the times when they are available during the appropriate windows. When a user changes their availability, the change is immediately and automatically sent to the database.
+                    +imgCaption('12.png','Availability Grid')
+                    a(name="discrete")
+                    h4 Time/Date list events
+                    p For date list or date/time list events, a sorted list of checkboxes will be presented, and users may simply check the ones where they are available. 
+                    +imgCaption('13.png','List of candidate times for a date/time list event')
+                    p As previously stated, users may specify their own time zones, and the app will convert everything for them. On the availability grid, this may cause time windows to stretch between days. In this case, the availability grid will, out of necessity, stretch for the entire day, though there will be blacked out areas representing local times that are not part of the window specified by the event creator.
+                    a(name="user-timezone")
+                    h4 Updating user timezone
+                    +imgCaption('14.png','Part of the same availability grid as above, after switching time zones from GMT-4 to GMT+1')
+                    p When a user changes their availability or their time zone, the change is immediately sent to the database, so there is no need to manually save anything.
+                    a(name="view")
+                    h3 Viewing results 
+                    p At any time, a logged-in user can view the results of the poll thus far by selecting the "Team Calendar" tab. The view will be different depending on the event type.
+                    h4 Continuous time events
+                    p For a continuous time event, a heat map of available users is displayed. Mouse over a space to view who has indicated availability for that time slot.
+                    +imgCaption('15.png','Availability heat map for continuous time event')
+                    h4 Time/Date list events 
+                    p For a time/date list event, a bar graph of available team members by date/time slot is displayed.
+                    +imgCaption('16.png','Availability graph for date/time list event')
+                    a(name="filter")
+                    h4 Filtering results 
+                    p The filter area allows you to display only time slots fitting certain criteria. Meet-You-@ allows filtering by number of users and specific users.
+                    +imgCaption('17.png','Displaying only times with at least 2 users available, including Chuck')
+                    +imgCaption('18.png','Displaying only times with at least 3 users available')
+                    h3 Deletion of events 
+                    p Events are automatically deleted after a certain period of time. For specific-date events, the events are automatically deleted one week after the latest candidate date. For example, an event that is created for May 6-10 will be deleted on May 17. For events that only specify days of the week, the poll will remain open for 4 weeks (28 days) before being deleted. 
+                    a(name="contact")
+                    h3 About/Contact/Donate 
+                    p My name is Chuck Yu, and I developed Meet-You-@ as a hobby project. It is free to use, and will remain so. I am open to suggestions, bug reports, and feature requests, so please feel free to contact me using the form below. If you enjoyed the app, I do graciously accept donations #[a(href="https://www.buymeacoffee.com/charlesyu4j") here]. No pressure.
+                    h4 Contact Me 
+                    form#contact-form.mx-2.d-flex.flex-column
+                        .input-container
+                            .input-label Your name 
+                            input#name(type="text" placeholder="Name")
+                        .input-container 
+                            .input-label E-mail (if you want a reply)
+                            input#email(type="text" placeholder="E-mail")
+                        .input-container 
+                            .input-label Subject
+                            input#subject(type="text" placeholder="Subject")
+                        .input-container 
+                            .input-label Your message 
+                            textarea#your-message(rows="6" columns="50" placeholder="Your message")
+                        .input-container 
+                            button#send-message.btn.btn-primary Send
+block scripts 
+    script(src="/js/help.js" type="module")

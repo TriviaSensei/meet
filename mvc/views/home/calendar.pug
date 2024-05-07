@@ -1,4 +1,4 @@
-.input-container.align-items-center.calendar.mb-1
+.input-container.align-items-center.calendar
     .input-label.mb-2 Click and drag to select dates:
     #month-control.d-flex.justify-content-between.w-75.mb-2
         .d-flex
@@ -21,3 +21,5 @@
         .d-flex.calendar-row(data-row=`${i}`)
             - for (j=0;j<7;j++)
                 .ratio.ratio-1x1.calendar-day.d-flex(data-cell-no=`${i*7+j}`)
+    .m-auto.my-1
+        button#clear-dates.btn.btn-primary.btn-sm(type="button" style="padding-top: unset;padding-bottom:unset;") Clear Dates

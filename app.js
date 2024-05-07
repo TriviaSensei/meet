@@ -50,11 +50,46 @@ const eventLimiter = rateLimit({
 		message: 'You are creating too many events. Try again later.',
 	},
 });
+const emailLimiter = rateLimit({
+	max: 3,
+	windowMs: 60 * 60 * 1000,
+	message: {
+		status: 'fail',
+		message: 'You are doing that too much. Try again later.',
+	},
+});
 
 app.use('/', viewLimiter);
 app.use('/api/v1/events/createEvent', eventLimiter);
 app.use('/api/v1/events/getEvent', getLimiter);
 app.use('/api/v1/events/updateAvailability/:id', editLimiter);
+app.use('/api/v1/contact', emailLimiter);
+
+app.post('/api/v1/contact', async (req, res) => {
+	const sgMail = require('@sendgrid/mail');
+	sgMail.setApiKey(process.env.SG_API_KEY);
+
+	const msg = {
+		from: process.env.SERVER_EMAIL,
+		to: process.env.ADMIN_EMAIL,
+		reply_to: req.body.email,
+		subject: `Meet-You-@ message from ${req.body.name}: ${req.body.subject}`,
+		text: req.body.message,
+	};
+	try {
+		await sgMail.send(msg);
+	} catch (e) {
+		console.log(e);
+		console.log(e.response.body.errors[0]);
+		return res
+			.status(e.code)
+			.json({ status: 'fail', message: e.response.body.errors[0].message });
+	}
+	res.status(200).json({
+		status: 'success',
+		message: 'message sent.',
+	});
+});
 
 //body parser, read data from body to req.body
 app.use(express.json());

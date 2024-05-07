@@ -60,6 +60,8 @@ const desc = document.querySelector('#event-description');
 const pw = document.querySelector('#password');
 const submitButton = document.querySelector('#create-event');
 const resetForm = document.querySelector('#reset-form');
+const clearDates = document.querySelector('#clear-dates');
+
 let isMobile;
 
 let sh;
@@ -645,6 +647,21 @@ document.addEventListener('DOMContentLoaded', () => {
 			timeList: [],
 			timeZone: tzSelect.value,
 		});
+	});
+
+	//clear dates
+	clearDates.addEventListener('click', (e) => {
+		const state = sh.getState();
+		if (state.time === 'list')
+			sh.setState({
+				...state,
+				listDates: [],
+			});
+		else if (state.time === 'continuous')
+			sh.setState({
+				...state,
+				selectedDates: [],
+			});
 	});
 
 	//submit form

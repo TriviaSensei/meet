@@ -10,6 +10,7 @@ const sendErrorDev = (err, req, res) => {
 			stack: err.stack,
 		});
 	}
+	console.log(err);
 	return res.status(err.statusCode).render('home', {
 		title: 'Home',
 		alert: {
