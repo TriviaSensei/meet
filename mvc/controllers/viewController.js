@@ -10,7 +10,6 @@ exports.getHome = catchAsync(async (req, res, next) => {
 });
 
 exports.getEvent = catchAsync(async (req, res, next) => {
-	console.log(req);
 	const event = await Event.findOne({
 		url: req.params.id,
 	});
@@ -26,6 +25,17 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 		};
 	});
 
+	console.log(event);
+
+	if (res.locals.user?.id !== 0) {
+		event.users = event.users.map((u) => {
+			return {
+				...u,
+				notes: '',
+			};
+		});
+	}
+
 	res.status(200).render('event', {
 		title: `${event.name}`,
 		event,
@@ -34,7 +44,6 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 });
 
 exports.getHelp = (req, res, next) => {
-	console.log('hi');
 	res.status(200).render('help', {
 		title: 'Help',
 	});

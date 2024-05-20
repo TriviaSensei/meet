@@ -21,6 +21,12 @@ router.patch(
 );
 
 router.patch(
+	'/updateNotes/:id',
+	eventController.isLoggedIn,
+	eventController.updateNotes
+);
+
+router.patch(
 	'/updateTimeZone/:id',
 	eventController.isLoggedIn,
 	eventController.updateTimeZone

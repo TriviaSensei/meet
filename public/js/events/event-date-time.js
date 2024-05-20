@@ -3,9 +3,13 @@ import { StateHandler } from '../utils/stateHandler.js';
 import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
+import { generateNotes } from './notes.js';
 import { dows, months, colors, testTimeZones } from './params.js';
+import {
+	createHandleLoginArea,
+	createHandleSaveNotes,
+} from './handleLoginArea.js';
 
-const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
 const userName = document.querySelector('#user-name');
 const password = document.querySelector('#password');
@@ -22,6 +26,9 @@ const calendarHeading = document.querySelector('#calendar-heading');
 const selectClear = document.querySelector('#select-clear-container');
 const selectAllAvail = document.querySelector('#select-all');
 const clearAvail = document.querySelector('#clear-availability');
+const saveNotes = document.querySelector('#save-notes');
+const teamNotesTab = document.querySelector('#team-notes-tab')?.closest('li');
+const teamNotes = document.querySelector('#team-notes-pane');
 const errorMessage = 'Something went wrong. Try again in a few seconds.';
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -596,6 +603,8 @@ const handleLogin = (e) => {
 			});
 			if (!user) return showMessage('error', 'User not found');
 			showMessage('info', `Logged in as ${user.name}`);
+			eventState.setState(res.event);
+
 			userState.setState(user);
 			//add the new user to the checkbox filters
 			const checkRow = userFilterList.querySelector(`#person-${user.id}`);
@@ -613,7 +622,6 @@ const handleLogin = (e) => {
 				newRow.appendChild(lbl);
 				userFilterList.appendChild(newRow);
 				chk.addEventListener('change', applyFilters);
-				eventState.setState(res.event);
 			}
 			//set the maxvalue of the personCount filter
 			personCount.setAttribute('max', res.event.users.length);
@@ -704,6 +712,9 @@ const allAvailability = () => {
 const changeTimeZone = (e) => {
 	const user = userState.getState();
 	const event = eventState.getState();
+	if (!user.name) {
+		return generateCalendar(myCalendarArea, event);
+	}
 	const handler = (res) => {
 		if (res.status === 'success') {
 			userState.setState(res.user);
@@ -929,7 +940,6 @@ const colorCell = (cell) => {
 const populateTeamCalendar = (event) => {
 	const obj = {};
 	const user = userState.getState();
-
 	event.users.forEach((u) => {
 		u.availability.forEach((a) => {
 			const str = moment
@@ -964,6 +974,34 @@ const populateTeamCalendar = (event) => {
 	});
 };
 
+const handleSaveNotes = (e) => {
+	if (e.target.id !== 'notes') return;
+
+	const user = userState.getState();
+	const event = eventState.getState();
+
+	if (!event.url || !user.name) return;
+
+	if (user.notes.trim() === e.target.value.trim()) return;
+
+	const str = `/api/v1/events/updateNotes/${event.url}`;
+	const body = {
+		notes: e.target.value,
+	};
+	const handler = (res) => {
+		if (res.status !== 'success') {
+			showMessage('error', 'Something went wrong. Please try again later.');
+			e.target.value = user.notes;
+		} else {
+			userState.setState({
+				...user,
+				notes: e.target.value,
+			});
+		}
+	};
+	handleRequest(str, 'PATCH', body, handler);
+};
+
 document.addEventListener('DOMContentLoaded', () => {
 	document.body.addEventListener(
 		'touchstart',
@@ -981,6 +1019,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	adjustTabSize();
 	window.addEventListener('resize', adjustTabSize);
 	const dataArea = document.querySelector('#data-area');
+	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
+	if (eventData) eventState = new StateHandler(eventData);
 	const userDataStr = dataArea?.getAttribute('data-user');
 	if (!userDataStr)
 		userState = new StateHandler({
@@ -988,27 +1028,10 @@ document.addEventListener('DOMContentLoaded', () => {
 			name: '',
 			availability: [],
 			timeZone: '',
+			notes: '',
 		});
 	else userState = new StateHandler(JSON.parse(userDataStr));
-	userState.addWatcher(null, (state) => {
-		if (!state.name) return;
-		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-1');
-		const sp1 = createElement('.bold.me-2.my-auto');
-		const sp2 = createElement('.my-auto');
-		sp1.innerHTML = 'Logged in as:';
-		sp2.innerHTML = state.name;
-		loginContainer.appendChild(cont);
-		cont.appendChild(sp1);
-		cont.appendChild(sp2);
-
-		getElementArray(tzSelect, 'option').some((o, i) => {
-			if (o.value === state.timeZone) {
-				tzSelect.selectedIndex = i;
-				return true;
-			}
-		});
-	});
+	userState.addWatcher(null, createHandleLoginArea(userState, eventState));
 	userState.addWatcher(calendarHeading, (e) => {
 		if (!e.detail.name)
 			e.target.innerHTML = 'You must log in to see your calendar.';
@@ -1018,9 +1041,20 @@ document.addEventListener('DOMContentLoaded', () => {
 		if (e.detail.name) e.target.classList.remove('d-none');
 		else e.target.classList.add('d-none');
 	});
+	const showNotes = (e) => {
+		if (e.detail.id === 0) e.target.classList.remove('d-none');
+		else e.target.classList.add('d-none');
+	};
+	if (teamNotesTab) userState.addWatcher(teamNotesTab, showNotes);
+	userState.addWatcher(teamNotes, showNotes);
+	userState.addWatcher(null, (state) => {
+		if (state.id === 0) {
+			const event = eventState.getState();
+			generateNotes(event);
+		}
+	});
 	const us = userState.getState();
 
-	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	dataArea.remove();
 	const userTZ = us && us.timeZone ? us.timeZone : moment.tz.guess();
 	const allTimeZones = moment.tz.names();
@@ -1038,7 +1072,6 @@ document.addEventListener('DOMContentLoaded', () => {
 	});
 
 	if (eventData) {
-		eventState = new StateHandler(eventData);
 		generateCalendar(myCalendarArea, eventData);
 		generateCalendar(teamCalendarArea, eventData);
 	}
@@ -1078,4 +1111,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (login) login.addEventListener('click', handleLogin);
 	selectAllAvail.addEventListener('click', allAvailability);
 	clearAvail.addEventListener('click', clearAvailability);
+
+	if (saveNotes)
+		saveNotes.addEventListener(
+			'click',
+			createHandleSaveNotes(userState, eventState)
+		);
 });

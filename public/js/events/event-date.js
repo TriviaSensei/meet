@@ -4,8 +4,11 @@ import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
 import { dows, dowNames, months, colors } from './params.js';
+import {
+	createHandleLoginArea,
+	createHandleSaveNotes,
+} from './handleLoginArea.js';
 
-const loginContainer = document.querySelector('#login-container');
 const login = document.querySelector('#login-button');
 const userName = document.querySelector('#user-name');
 const password = document.querySelector('#password');
@@ -16,12 +19,13 @@ const copyButton = document.querySelector('#copy-url');
 const userFilterList = document.querySelector('#user-filter-list');
 const personCount = document.querySelector('#person-count');
 const personButton = document.querySelector('#person-button');
-const filterButton = document.querySelector('#filter-button');
 const calendarHeading = document.querySelector('#calendar-heading');
 const selectClear = document.querySelector('#select-clear-container');
 const selectAllAvail = document.querySelector('#select-all');
 const clearAvail = document.querySelector('#clear-availability');
 const tct = document.querySelector('#team-calendar-tab');
+const saveNotes = document.querySelector('#save-notes');
+
 const errorMessage = 'Something went wrong. Try again in a few seconds.';
 
 const tooltipTriggerList = document.querySelectorAll(
@@ -512,6 +516,10 @@ document.addEventListener('DOMContentLoaded', () => {
 	window.addEventListener('resize', adjustTabSize);
 	const dataArea = document.querySelector('#data-area');
 	const userDataStr = dataArea?.getAttribute('data-user');
+	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
+	if (eventData) {
+		eventState = new StateHandler(eventData);
+	}
 	if (!userDataStr)
 		userState = new StateHandler({
 			id: null,
@@ -519,18 +527,7 @@ document.addEventListener('DOMContentLoaded', () => {
 			availability: [],
 		});
 	else userState = new StateHandler(JSON.parse(userDataStr));
-	userState.addWatcher(null, (state) => {
-		if (!state.name) return;
-		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-2');
-		const sp1 = createElement('span.bold.me-2');
-		const sp2 = createElement('span');
-		sp1.innerHTML = 'Logged in as:';
-		sp2.innerHTML = state.name;
-		loginContainer.appendChild(cont);
-		cont.appendChild(sp1);
-		cont.appendChild(sp2);
-	});
+	userState.addWatcher(null, createHandleLoginArea(userState, eventState));
 	userState.addWatcher(calendarHeading, (e) => {
 		if (!e.detail.name)
 			e.target.innerHTML = 'You must log in to see your calendar.';
@@ -541,11 +538,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		else e.target.classList.add('d-none');
 	});
 
-	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	dataArea.remove();
-	if (eventData) {
-		eventState = new StateHandler(eventData);
-	}
+
 	eventState.addWatcher(legendBar, drawLegend);
 
 	if (eventData) {
@@ -573,4 +567,8 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (login) login.addEventListener('click', handleLogin);
 	selectAllAvail.addEventListener('click', allAvailability);
 	clearAvail.addEventListener('click', clearAvailability);
+	saveNotes.addEventListener(
+		'click',
+		createHandleSaveNotes(userState, eventState)
+	);
 });

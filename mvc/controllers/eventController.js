@@ -83,6 +83,7 @@ const createAndSendToken = (event, user, statusCode, req, res) => {
 			return {
 				...u,
 				password: '',
+				notes: user === 0 ? u.notes : '',
 			};
 		});
 
@@ -154,15 +155,17 @@ exports.isLoggedIn = catchAsync(async (req, res, next) => {
 			return next();
 		}
 
-		const { name, id, timeZone, availability } = currentUser;
+		const { name, id, timeZone, availability, notes } = currentUser;
 		//we've passed the gauntlet. There is a logged in user.
 		res.locals.user = {
 			name,
 			id,
 			timeZone,
 			availability,
+			notes: notes || '',
 			url: decoded.url,
 		};
+
 		next();
 	} catch (err) {
 		console.log(err);
@@ -201,6 +204,7 @@ exports.login = catchAsync(async (req, res, next) => {
 			password,
 			saved: false,
 			timeZone,
+			notes: '',
 			availability: [],
 		});
 		event.markModified('users');
@@ -270,6 +274,36 @@ exports.updateAvailability = catchAsync(async (req, res, next) => {
 	res.status(200).json({
 		status: 'success',
 		data: event,
+		user: {
+			...user,
+			password: '',
+		},
+	});
+});
+
+exports.updateNotes = catchAsync(async (req, res, next) => {
+	if (!res.locals.user)
+		return next(new AppError('You must be logged in.', 403));
+
+	const event = await Event.findOne({ url: req.params.id });
+
+	if (!event || event.url !== res.locals.user.url)
+		return next(new AppError('Invalid event', 404));
+
+	const user = event.users.find((u) => {
+		if (u.id === res.locals.user.id) {
+			u.notes = req.body.notes;
+			return true;
+		}
+		return false;
+	});
+
+	event.markModified('users');
+	await event.save();
+
+	res.status(200).json({
+		status: 'success',
+		event,
 		user: {
 			...user,
 			password: '',
@@ -368,6 +402,7 @@ exports.createEvent = catchAsync(async (req, res, next) => {
 			password: req.body.password,
 			saved: false,
 			timeZone: req.body.timeZone,
+			notes: '',
 			availability: [],
 		},
 	];

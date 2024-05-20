@@ -1,9 +1,13 @@
 .w-100.p-2.f-1.d-flex.flex-column.overflow-hidden
     ul.nav.nav-tabs.nav-fill#tab-list(role="tablist")
         li.nav-item(role="presentation")
-            button.nav-link.active#my-calendar-tab( data-bs-toggle="tab" data-bs-target="#my-calendar-pane" type="button" role="tab" aria-controls="my-calendar-pane" aria-selected="true") My calendar
+            button.nav-link.active#my-calendar-tab( data-bs-toggle="tab" data-bs-target="#my-calendar-pane" type="button" role="tab" aria-controls="my-calendar-pane" aria-selected="true") Me
         li.nav-item(role="presentation")
-            button.nav-link#team-calendar-tab(data-bs-toggle="tab" data-bs-target="#team-calendar-pane" type="button" role="tab" aria-controls="team-calendar-pane" aria-selected="false") Team calendar
+            button.nav-link#team-calendar-tab(data-bs-toggle="tab" data-bs-target="#team-calendar-pane" type="button" role="tab" aria-controls="team-calendar-pane" aria-selected="false") Team
+        li(class=`nav-item ${user && user.id === 0 ? '':'d-none'}` role="presentation")
+            button.nav-link#team-notes-tab(data-bs-toggle="tab" data-bs-target="#team-notes-pane" type="button" role="tab" aria-controls="team-notes-pane" aria-selected="false") Notes
+
+
     .tab-content#tab-content
         .tab-pane.fade.show.active#my-calendar-pane(role="tabpanel" aria-labelledby="my-calendar-tab" tabindex="0")
             .tab-wrapper#calendar-wrapper
@@ -22,3 +26,14 @@
                         #legend-bar.legend.f-1.d-flex.mx-1
                         .legend-label= `${event.users.length}/${event.users.length} available` 
                 #team-calendar.calendar.mt-1.overflow-auto
+        #team-notes-pane(role="tabpanel" aria-labelledby="team-notes-tab" tabindex="0" class=`tab-pane fade ${user && user.id === 0 ? '' : 'd-none'}`) 
+            .tab-wrapper.overflow-hidden.d-flex
+                #team-notes.calendar.mt-1.flex-fill.overflow-auto
+                    - if (user && user.id === 0)
+                        each u in event.users 
+                            - if (u.notes)
+                                .note(data-id=`${u.id}`)
+                                    .name= u.name 
+                                    .note-content= u.notes
+                    
+                    
