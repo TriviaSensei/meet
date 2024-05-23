@@ -164,6 +164,8 @@ const generateCalendar = (area, event) => {
 					);
 			});
 		});
+		const innerWidth = 40;
+		let diff;
 		dateSlots.forEach((ds) => {
 			const barContainer = createElement('.bar-container');
 			barContainer.setAttribute('data-value', ds.getAttribute('data-dt'));
@@ -195,15 +197,15 @@ const generateCalendar = (area, event) => {
 			bar.appendChild(barInner);
 			barContainer.appendChild(bar);
 			ds.appendChild(barContainer);
-			const innerWidth = 40;
-			const diff = bar.getBoundingClientRect().width - innerWidth;
+			if (!diff) diff = bar.getBoundingClientRect().width - innerWidth;
 			const ct = Number(barInner.getAttribute('data-count'));
 			const pct = ct / event.users.length;
 			const color = colorMap[ct].color;
+			const pl = parseFloat(getComputedStyle(barInner).paddingLeft);
 			if (ct > 0)
 				barInner.setAttribute(
 					'style',
-					`background-color:#${color};width:${innerWidth + pct * diff}px;`
+					`background-color:#${color};width:${innerWidth + pct * diff - pl}px;`
 				);
 		});
 		applyFilters();
@@ -567,8 +569,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	if (login) login.addEventListener('click', handleLogin);
 	selectAllAvail.addEventListener('click', allAvailability);
 	clearAvail.addEventListener('click', clearAvailability);
-	saveNotes.addEventListener(
-		'click',
-		createHandleSaveNotes(userState, eventState)
-	);
+	if (saveNotes)
+		saveNotes.addEventListener(
+			'click',
+			createHandleSaveNotes(userState, eventState)
+		);
 });

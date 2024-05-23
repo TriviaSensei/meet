@@ -25,8 +25,6 @@ exports.getEvent = catchAsync(async (req, res, next) => {
 		};
 	});
 
-	console.log(event);
-
 	if (res.locals.user?.id !== 0) {
 		event.users = event.users.map((u) => {
 			return {

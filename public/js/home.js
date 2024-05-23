@@ -652,15 +652,20 @@ document.addEventListener('DOMContentLoaded', () => {
 	//clear dates
 	clearDates.addEventListener('click', (e) => {
 		const state = sh.getState();
-		if (state.time === 'list')
+		if (state.dates === 'weekday')
 			sh.setState({
 				...state,
-				listDates: [],
+				selectedWeekdays: [],
 			});
-		else if (state.time === 'continuous')
+		else if (state.time !== 'list')
 			sh.setState({
 				...state,
 				selectedDates: [],
+			});
+		else
+			sh.setState({
+				...state,
+				listDates: [],
 			});
 	});
 

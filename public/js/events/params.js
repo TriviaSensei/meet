@@ -51,9 +51,9 @@ export const colors = [
 	'0D41E1',
 ];
 
-export const testTimeZones = [
-	'Europe/Lisbon',
-	'America/New_York',
-	'America/Los_Angeles',
-	'America/Halifax',
-];
+// export const testTimeZones = [
+// 	'Europe/Lisbon',
+// 	'America/New_York',
+// 	'America/Los_Angeles',
+// 	'America/Halifax',
+// ];

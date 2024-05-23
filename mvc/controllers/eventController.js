@@ -83,7 +83,7 @@ const createAndSendToken = (event, user, statusCode, req, res) => {
 			return {
 				...u,
 				password: '',
-				notes: user === 0 ? u.notes : '',
+				notes: user === 0 || u.id === user ? u.notes : '',
 			};
 		});
 

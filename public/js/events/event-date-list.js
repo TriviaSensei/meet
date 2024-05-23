@@ -3,7 +3,7 @@ import { StateHandler } from '../utils/stateHandler.js';
 import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
-import { dows, dowNames, months, colors, testTimeZones } from './params.js';
+import { dows, dowNames, months, colors } from './params.js';
 import {
 	createHandleLoginArea,
 	createHandleSaveNotes,
@@ -95,11 +95,13 @@ const createOption = (str, dataset) => {
 };
 
 const generateCalendar = (area, event) => {
+	// area.innerHTML = '';
 	let container = area.querySelector('.cal-inner');
 	if (!container) {
 		container = createElement('.cal-inner.d-flex.flex-column.w-100.h-100');
 		area.appendChild(container);
 	}
+	container.innerHTML = '';
 	const userTZ = tzSelect.value;
 	const user = userState.getState();
 	const localOffset = new Date().getTimezoneOffset();
@@ -269,11 +271,13 @@ const generateCalendar = (area, event) => {
 			const diff = bar.getBoundingClientRect().width - innerWidth;
 			const ct = Number(b.getAttribute('data-count'));
 			const pct = ct / event.users.length;
+			const pl = parseFloat(getComputedStyle(inner).paddingLeft);
+
 			const color = colorMap[ct].color;
 			if (ct > 0)
 				inner.setAttribute(
 					'style',
-					`background-color:#${color};width:${innerWidth + pct * diff}px;`
+					`background-color:#${color};width:${innerWidth + pct * diff - pl}px;`
 				);
 		});
 	}
@@ -390,11 +394,15 @@ const clearAvailability = (e) => {
 const changeTimeZone = (e) => {
 	const user = userState.getState();
 	const event = eventState.getState();
+	if (!user.name) {
+		generateCalendar(myCalendarArea, event);
+		generateCalendar(teamCalendarArea, event);
+		return populateTeamCalendar(event);
+	}
 	const handler = (res) => {
 		if (res.status === 'success') {
 			userState.setState(res.user);
-			myCalendarArea.innerHTML = '';
-			teamCalendarArea.innerHTML = '';
+
 			generateCalendar(myCalendarArea, res.event);
 			generateCalendar(teamCalendarArea, res.event);
 			populateTeamCalendar(event);
@@ -630,12 +638,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		const op = createElement('option');
 		op.setAttribute('value', tz);
 		op.innerHTML = tz;
-		if (
-			!testTimeZones ||
-			testTimeZones.length === 0 ||
-			testTimeZones.includes(tz)
-		)
-			tzSelect.appendChild(op);
+
+		tzSelect.appendChild(op);
 		if (tz === userTZ) op.setAttribute('selected', true);
 	});
 
@@ -682,8 +686,9 @@ document.addEventListener('DOMContentLoaded', () => {
 	tzSelect.addEventListener('change', changeTimeZone);
 	selectAllAvail.addEventListener('click', allAvailability);
 	clearAvail.addEventListener('click', clearAvailability);
-	saveNotes.addEventListener(
-		'click',
-		createHandleSaveNotes(userState, eventState)
-	);
+	if (saveNotes)
+		saveNotes.addEventListener(
+			'click',
+			createHandleSaveNotes(userState, eventState)
+		);
 });

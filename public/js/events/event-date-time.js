@@ -4,7 +4,7 @@ import { handleRequest } from '../utils/requestHandler.js';
 import { createElement } from '../utils/createElementFromSelector.js';
 import { getElementArray } from '../utils/getElementArray.js';
 import { generateNotes } from './notes.js';
-import { dows, months, colors, testTimeZones } from './params.js';
+import { dows, months, colors } from './params.js';
 import {
 	createHandleLoginArea,
 	createHandleSaveNotes,
@@ -347,6 +347,10 @@ const createOption = (str, dataset) => {
 const generateCalendar = (area, event) => {
 	area.innerHTML = '';
 	const userTZ = tzSelect.value;
+
+	// const strTest = '2024-05-20T09:00:00-04:00';
+	// console.log(moment.tz(strTest, userTZ).format());
+
 	const user = userState.getState();
 	const localOffset = new Date().getTimezoneOffset();
 	//sort the event dates
@@ -513,7 +517,7 @@ const generateCalendar = (area, event) => {
 				}${hr}:${min}`;
 				newBox.setAttribute(
 					'data-dt',
-					moment.tz(dtStr, user.timeZone || event.timeZone).format()
+					moment.tz(dtStr, user.timeZone || userTZ || event.timeZone).format()
 				);
 				newBox.setAttribute('data-col', j);
 				newBox.setAttribute('data-row', (i - startTime) / 15);
@@ -713,7 +717,9 @@ const changeTimeZone = (e) => {
 	const user = userState.getState();
 	const event = eventState.getState();
 	if (!user.name) {
-		return generateCalendar(myCalendarArea, event);
+		generateCalendar(myCalendarArea, event);
+		generateCalendar(teamCalendarArea, event);
+		return populateTeamCalendar(event);
 	}
 	const handler = (res) => {
 		if (res.status === 'success') {
@@ -1062,12 +1068,8 @@ document.addEventListener('DOMContentLoaded', () => {
 		const op = createElement('option');
 		op.setAttribute('value', tz);
 		op.innerHTML = tz;
-		if (
-			!testTimeZones ||
-			testTimeZones.length === 0 ||
-			testTimeZones.includes(tz)
-		)
-			tzSelect.appendChild(op);
+
+		tzSelect.appendChild(op);
 		if (tz === userTZ) op.setAttribute('selected', true);
 	});
 
