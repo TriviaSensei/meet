@@ -1,7 +1,9 @@
 section.header-section.d-flex.justify-content-between.ps-2.pe-1
     .logo-container.d-flex.f-1
-        include ../svg/logo
-        include ../svg/logo_text
+        .logo
+            include ../svg/logo
+        .logo.ms-5
+            include ../svg/logo_text
     .menu-container.d-flex.justify-content-end
         a.help-button(href="/help")
             include ../svg/help
