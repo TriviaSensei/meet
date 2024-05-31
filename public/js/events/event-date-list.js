@@ -397,15 +397,16 @@ const changeTimeZone = (e) => {
 	if (!user.name) {
 		generateCalendar(myCalendarArea, event);
 		generateCalendar(teamCalendarArea, event);
-		return populateTeamCalendar(event);
+		populateTeamCalendar(event);
+		return applyFilters();
 	}
 	const handler = (res) => {
 		if (res.status === 'success') {
 			userState.setState(res.user);
-
 			generateCalendar(myCalendarArea, res.event);
 			generateCalendar(teamCalendarArea, res.event);
 			populateTeamCalendar(event);
+			applyFilters();
 		} else {
 			showMessage('error', errorMessage);
 			const opts = getElementArray(e.target, 'option');
