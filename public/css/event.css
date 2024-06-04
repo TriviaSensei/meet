@@ -300,7 +300,8 @@ button svg {
 }
 
 .date-slot[data-count='0']::after,
-.date-slot:not(:has(> .bar-container:not(.hide), > .time-option))::after,
+/* This line seems to give trouble to mobile */
+/* .date-slot:not(:has(> .bar-container:not(.hide), > .time-option))::after, */
 .date-slot.hide::after {
 	content: 'None';
 }

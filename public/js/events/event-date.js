@@ -166,7 +166,7 @@ const generateCalendar = (area, event) => {
 		});
 		const innerWidth = 40;
 		let diff;
-		dateSlots.forEach((ds) => {
+		dateSlots.forEach((ds, i) => {
 			const barContainer = createElement('.bar-container');
 			barContainer.setAttribute('data-value', ds.getAttribute('data-dt'));
 			const lbl = createElement('.bar-label');
@@ -207,6 +207,10 @@ const generateCalendar = (area, event) => {
 					'style',
 					`background-color:#${color};width:${innerWidth + pct * diff - pl}px;`
 				);
+			console.log(`-------------- ${i} --------------`);
+			console.log(ds.getAttribute('data-count'));
+			console.log(ds.querySelector('.bar-container:not(.hide)') ? true : false);
+			console.log(ds.classList);
 		});
 		applyFilters();
 	}
