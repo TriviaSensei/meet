@@ -1,0 +1,15 @@
+.modal.fade#edit-info-modal(tabindex="-1" aria-labelledby="edit-info-label" aria-hidden="true")
+    .modal-dialog.modal-dialog-centered
+        .modal-content#edit-info-modal-content
+            .modal-header
+                h5.modal-title#edit-info-label Edit Event Info
+            .modal-body
+                .input-row 
+                    .input-label Event Name 
+                    input#event-name(type="text" value=`${event.name}`)
+                .input-row 
+                    .input-label Event Description 
+                    textarea#event-description(rows="3")= event.description
+            .modal-footer
+                button.btn.btn-primary#confirm-edit-info(type="button") Save
+                button.btn.btn-secondary(type="button" data-bs-dismiss="modal") Cancel

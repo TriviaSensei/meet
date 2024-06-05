@@ -108,5 +108,16 @@ export const createHandleLoginArea = (userState, eventState) => {
 				}
 			});
 		}
+
+		const hb = document.querySelector('#header-buttons');
+		if (!hb) return;
+
+		const bd = createElement('.m-auto.ms-2');
+		const editButton = createElement('button#edit-info.btn.btn-sm.btn-primary');
+		editButton.setAttribute('data-bs-toggle', 'modal');
+		editButton.setAttribute('data-bs-target', '#edit-info-modal');
+		editButton.innerHTML = 'Edit Info';
+		bd.appendChild(editButton);
+		hb.appendChild(bd);
 	};
 };

@@ -1,7 +1,7 @@
 .w-100.px-2.py-2.d-flex.justify-content-between
     .d-flex.flex-column.align-items-start.pe-2
-        .bold= event.name 
-        .event-description= event.description
-    .d-flex 
+        #event-name-label.bold= event.name 
+        #event-description-label.event-description= event.description
+    #header-buttons.d-flex 
         .m-auto 
             button#copy-url.btn.btn-sm.btn-primary Copy URL

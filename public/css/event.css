@@ -305,3 +305,15 @@ button svg {
 .date-slot.hide::after {
 	content: 'None';
 }
+
+.input-row {
+	display: flex;
+	flex-direction: column;
+	.input-label {
+		font-weight: bold;
+	}
+}
+
+.input-row:not(:last-child) {
+	margin-bottom: 1rem;
+}

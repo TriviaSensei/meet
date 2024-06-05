@@ -360,7 +360,7 @@ exports.updateEvent = catchAsync(async (req, res, next) => {
 	if (!res.locals.user || res.locals.user.id !== 0)
 		return next(new AppError('You are not the owner of this event', 403));
 
-	const updatedData = filterObj(req.body, 'name', 'dates', 'times', 'timeZone');
+	const updatedData = filterObj(req.body, 'name', 'description');
 
 	const doc = await Event.findOneAndUpdate(
 		{ url: req.params.id },

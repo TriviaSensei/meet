@@ -5,6 +5,7 @@ block styles
     script(src="https://ajax.googleapis.com/ajax/libs/jquery/3.7.1/jquery.min.js")
 
 block modals
+    include events/modals/editModal
 
 block content 
     .app-container
@@ -26,4 +27,5 @@ block scripts
         script(src="/js/events/event-date-list.js" type="module")
     - else if (event.eventType === 'date' || event.eventType === 'weekday')
         script(src="/js/events/event-date.js" type="module")
+    script(src="/js/events/edit-event.js" type="module")
     
