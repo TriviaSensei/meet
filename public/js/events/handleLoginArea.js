@@ -112,6 +112,7 @@ export const createHandleLoginArea = (userState, eventState) => {
 		const hb = document.querySelector('#header-buttons');
 		if (!hb) return;
 		if (hb.querySelector('.edit-button-container')) return;
+
 		const bd = createElement('.edit-button-container.m-auto.ms-2');
 		const editButton = createElement('button#edit-info.btn.btn-sm.btn-primary');
 		editButton.setAttribute('data-bs-toggle', 'modal');
