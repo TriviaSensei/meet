@@ -163,7 +163,7 @@ const generateCalendar = (area, event) => {
 					? 12
 					: timeArr[0] % 12 < 10
 					? `0${timeArr[0] % 12}`
-					: timeArr[0]
+					: timeArr[0] % 12
 			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
 				timeArr[0] >= 12 ? 'PM' : 'AM'
 			}`;
@@ -195,7 +195,7 @@ const generateCalendar = (area, event) => {
 					? 12
 					: timeArr[0] % 12 < 10
 					? `0${timeArr[0] % 12}`
-					: timeArr[0]
+					: timeArr[0] % 12
 			}:${timeArr[1] === 0 ? '00' : timeArr[1]} ${
 				timeArr[0] >= 12 ? 'PM' : 'AM'
 			}`;
