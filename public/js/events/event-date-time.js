@@ -36,7 +36,7 @@ const tooltipTriggerList = document.querySelectorAll(
 const tooltipList = [...tooltipTriggerList].map(
 	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
 );
-
+let url;
 let touchState = new StateHandler({
 	isMobile: false,
 	touchActive: false,
@@ -1030,6 +1030,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	if (eventData) eventState = new StateHandler(eventData);
 	const userDataStr = dataArea?.getAttribute('data-user');
+	if (eventData.url) url = eventData.url;
 	if (!userDataStr)
 		userState = new StateHandler({
 			id: null,
@@ -1100,7 +1101,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	document.addEventListener('shown.bs.tab', setCalendarSize);
 
 	copyButton.addEventListener('click', () => {
-		navigator.clipboard.writeText(location.href);
+		navigator.clipboard.writeText(`https://www.meetyouat.net/${url}`);
 		showMessage('info', 'Copied URL to clipboard');
 	});
 

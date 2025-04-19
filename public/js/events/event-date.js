@@ -35,7 +35,7 @@ const tooltipList = [...tooltipTriggerList].map(
 	(tooltipTriggerEl) => new bootstrap.Tooltip(tooltipTriggerEl)
 );
 
-let eventState, userState;
+let eventState, userState, url;
 
 const updateAvailability = (e) => {
 	//add API connection here
@@ -207,10 +207,6 @@ const generateCalendar = (area, event) => {
 					'style',
 					`background-color:#${color};width:${innerWidth + pct * diff - pl}px;`
 				);
-			console.log(`-------------- ${i} --------------`);
-			console.log(ds.getAttribute('data-count'));
-			console.log(ds.querySelector('.bar-container:not(.hide)') ? true : false);
-			console.log(ds.classList);
 		});
 		applyFilters();
 	}
@@ -525,6 +521,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	if (eventData) {
 		eventState = new StateHandler(eventData);
+		if (eventData.url) url = eventData.url;
 	}
 	if (!userDataStr)
 		userState = new StateHandler({
@@ -558,7 +555,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	document.addEventListener('shown.bs.tab', setCalendarSize);
 
 	copyButton.addEventListener('click', () => {
-		navigator.clipboard.writeText(location.href);
+		navigator.clipboard.writeText(`https://www.meetyouat.net/${url}`);
 		showMessage('info', 'Copied URL to clipboard');
 	});
 

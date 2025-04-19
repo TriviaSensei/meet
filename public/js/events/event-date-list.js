@@ -29,6 +29,7 @@ const tct = document.querySelector('#team-calendar-tab');
 const saveNotes = document.querySelector('#save-notes');
 
 const errorMessage = 'Something went wrong. Try again in a few seconds.';
+let url;
 
 const tooltipTriggerList = document.querySelectorAll(
 	'[data-bs-toggle="tooltip"]'
@@ -113,8 +114,6 @@ const generateCalendar = (area, event) => {
 		.sort((a, b) => {
 			return new Date(a) - new Date(b);
 		});
-
-	console.log(candidates);
 
 	//set the header text if needed
 	if (area === myCalendarArea) {
@@ -621,7 +620,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const dataArea = document.querySelector('#data-area');
 	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	if (eventData) eventState = new StateHandler(eventData);
-	console.log(eventData);
+	if (eventData.url) url = eventData.url;
 	const userDataStr = dataArea?.getAttribute('data-user');
 	if (!userDataStr)
 		userState = new StateHandler({
@@ -673,7 +672,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	document.addEventListener('shown.bs.tab', setCalendarSize);
 
 	copyButton.addEventListener('click', () => {
-		navigator.clipboard.writeText(location.href);
+		navigator.clipboard.writeText(`https://www.meetyouat.net/${url}`);
 		showMessage('info', 'Copied URL to clipboard');
 	});
 
