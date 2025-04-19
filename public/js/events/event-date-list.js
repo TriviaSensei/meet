@@ -114,6 +114,8 @@ const generateCalendar = (area, event) => {
 			return new Date(a) - new Date(b);
 		});
 
+	console.log(candidates);
+
 	//set the header text if needed
 	if (area === myCalendarArea) {
 		if (!user.name) {
@@ -124,6 +126,8 @@ const generateCalendar = (area, event) => {
 
 	//set the date slots
 	candidates.forEach((c) => {
+		const dt = new Date(c);
+		const dowIndex = dt.getDay();
 		const arr = c.split('T');
 		const date = arr[0];
 		let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
@@ -133,9 +137,6 @@ const generateCalendar = (area, event) => {
 			if (area === teamCalendarArea) dateSlot.setAttribute('data-count', 0);
 			container.appendChild(dateSlot);
 			const dateHeader = createElement('.date-header');
-			const dowIndex = new Date(
-				Date.parse(new Date(c)) + localOffset * 60000
-			).getDay();
 			const dow =
 				event.eventType === 'date-list' ? dows[dowIndex] : dowNames[dowIndex];
 			const m = months[Number(date.split('-')[1] - 1)];
@@ -620,6 +621,7 @@ document.addEventListener('DOMContentLoaded', () => {
 	const dataArea = document.querySelector('#data-area');
 	const eventData = JSON.parse(dataArea?.getAttribute('data-event'));
 	if (eventData) eventState = new StateHandler(eventData);
+	console.log(eventData);
 	const userDataStr = dataArea?.getAttribute('data-user');
 	if (!userDataStr)
 		userState = new StateHandler({
