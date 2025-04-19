@@ -128,14 +128,12 @@ const generateCalendar = (area, event) => {
 	const baseDate = new Date('2025-01-05');
 	//set the date slots
 	candidates.forEach((c) => {
-		console.log(c);
 		const arr = c.split('T');
 		const date = arr[0];
 		const dtTest = new Date(date);
 		//number of days passed since 2025-01-05 mod 7 to determine dow
 		let dowIndex = Math.round((dtTest - baseDate) / 86400000) % 7;
 		if (dowIndex < 0) dowIndex += 7;
-		console.log(dowIndex);
 		let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
 		if (!dateSlot) {
 			dateSlot = createElement('.date-slot');
