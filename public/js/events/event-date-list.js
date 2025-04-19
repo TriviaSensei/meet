@@ -96,6 +96,7 @@ const createOption = (str, dataset) => {
 };
 
 const generateCalendar = (area, event) => {
+	console.log(event);
 	// area.innerHTML = '';
 	let container = area.querySelector('.cal-inner');
 	if (!container) {
@@ -123,12 +124,15 @@ const generateCalendar = (area, event) => {
 		}
 	}
 
+	//2025-01-05 was a Sunday - figure out how many days passed
+	const baseDate = new Date('2025-01-05');
 	//set the date slots
 	candidates.forEach((c) => {
-		const dt = new Date(c);
-		const dowIndex = dt.getDay();
 		const arr = c.split('T');
 		const date = arr[0];
+		const dtTest = new Date(date);
+		//number of days passed since 2025-01-05 mod 7 to determine dow
+		const dowIndex = Math.round((dtTest - baseDate) / 86400000) % 7;
 		let dateSlot = area.querySelector(`.date-slot[data-date="${date}"]`);
 		if (!dateSlot) {
 			dateSlot = createElement('.date-slot');
