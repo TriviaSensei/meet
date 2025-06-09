@@ -70,13 +70,22 @@ export const createHandleLoginArea = (userState, eventState) => {
 		const loginContainer = document.querySelector('#login-container');
 
 		loginContainer.innerHTML = '';
-		const cont = createElement('.d-flex.flex-row.w-100.my-1');
+		const cont = createElement('.d-flex.flex-column.w-100.my-1');
+		const outer1 = createElement('.me-5.d-flex.flex-row');
 		const sp1 = createElement('.bold.me-2.my-auto');
 		const sp2 = createElement('.my-auto');
-		const sp3 = createElement('.f-1.ms-5.d-flex');
+		outer1.appendChild(sp1);
+		outer1.appendChild(sp2);
+
+		const outer2 = createElement('.f-1.d-flex.flex-row');
+		const sp3 = createElement('.f-1.d-flex');
 		const sp4 = createElement('.bold.me-2.my-auto');
+
 		const notes = createElement('input#notes.f-1');
 		const btn = createElement('button.ms-2.btn.btn-sm.btn-primary');
+
+		outer2.appendChild(sp3);
+		outer2.appendChild(btn);
 		btn.innerHTML = 'Save';
 		notes.setAttribute('type', 'text');
 		notes.setAttribute(
@@ -94,10 +103,10 @@ export const createHandleLoginArea = (userState, eventState) => {
 		sp3.appendChild(sp4);
 		sp3.appendChild(notes);
 		loginContainer.appendChild(cont);
-		cont.appendChild(sp1);
-		cont.appendChild(sp2);
-		cont.appendChild(sp3);
-		cont.appendChild(btn);
+		cont.appendChild(outer1);
+		cont.appendChild(outer2);
+		// cont.appendChild(sp3);
+		// cont.appendChild(btn);
 
 		const tzSelect = document.querySelector('#timezone');
 		if (tzSelect) {

@@ -1,12 +1,15 @@
 #login-container.input-container.px-2
     #data-area(data-user=`${user ? JSON.stringify(user) : ''}` data-event=`${JSON.stringify(event)}`)
     - if (user)
-        .d-flex.flex-row.w-100.my-2
-            span.bold.me-2 Logged in as: 
-            span= user.name
-            .f-1 
-                input#notes(type="text" placeholder=`Notes (only viewable by you${user.id === 0 ? '' : ' and host'})`)
-            button#save-notes.ms-2.btn.btn-sm.btn-primary(role="button") Save
+        .d-flex.flex-column.w-100.my-2
+            .me-5.d-flex.flex-row
+                span.bold.me-2 Logged in as: 
+                span= user.name
+            .f-1.d-flex.flex-row
+                .f-1.d-flex
+                    .bold.me-2.my-auto Notes:
+                    input#notes(type="text" placeholder=`Notes (only viewable by you${user.id === 0 ? '' : ' and host'})`)
+                button#save-notes.ms-2.btn.btn-sm.btn-primary(role="button") Save
     - else 
         #login.d-flex.w-100.mb-2
             .d-flex.flex-column.me-2
